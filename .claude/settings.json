@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Read(//Users/a61/.homiclaw/workspace/skills/personal-evolution-system/**)",
+      "Bash(git clone *)",
+      "Read(//tmp/**)",
+      "WebSearch",
+      "Read(//Users/a61/Downloads/yourself-skill-master/**)",
+      "Bash(sed -i '' 's/| 4 | 自我探索页 | 对话界面 |/| 4 | 自我探索页 | 对话界面 + 用户画像入口 |/' /Users/a61/Projects/mirror/docs/superpowers/specs/demo/app-design-brief.md)",
+      "Bash(sed -i '' 's/| 12 | 色彩\\\\/字体规范 | 设计规范文档 |/| 12 | 色彩\\\\/字体规范 | 设计规范文档 |\\\\n| 13 | 粒子视觉规范 | 粒子效果技术规范 + 场景统一 |\\\\n| 14 | 用户画像页 | 粒子3D人体 + 时间线 + 分享 |/' /Users/a61/Projects/mirror/docs/superpowers/specs/demo/app-design-brief.md)",
+      "WebFetch(domain:pendereckisgarden.pl)",
+      "WebFetch(domain:)",
+      "Bash(npm install *)"
+    ],
+    "additionalDirectories": [
+      "/Users/a61/Projects/mirror/docs/superpowers"
+    ]
+  }
+}
