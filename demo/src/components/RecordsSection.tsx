@@ -1,11 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, Send, History, ImageIcon, Sparkles } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
 import { cn } from '../lib/utils';
 import { ParticleHandle } from './ParticleBackground';
-
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 interface Message {
   id: string;
@@ -19,9 +16,24 @@ interface RecordsSectionProps {
   particleRef: React.RefObject<ParticleHandle | null>;
 }
 
+// 本地预设回复
+const getLocalResponse = (_userText: string): string => {
+  const responses = [
+    "这段记忆很珍贵。它让你想起了什么？",
+    "我能感受到其中的情感。那个时刻对你意味着什么？",
+    "星尘之中，我看见了这一刻的轮廓。还有更多细节吗？",
+    "这是一个重要的瞬间。那时的心情是怎样的？",
+    "记忆正在汇聚成星河。然后呢？",
+    "我感受到了这其中有故事。能多说一些吗？",
+    "这个片段很独特。它如何影响了你？",
+    "时间在碎片中凝固。那一刻你最想记住什么？",
+  ];
+  return responses[Math.floor(Math.random() * responses.length)];
+};
+
 export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange, particleRef }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', type: 'ai', text: '“我是mirror，既然你来到了这里，说明有些记忆值得被永久留存。你先聊聊什么呢？”' }
+    { id: '1', type: 'ai', text: '"我是mirror，既然你来到了这里，说明有些记忆值得被永久留存。你想记录什么？"' }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -29,16 +41,12 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Morph to records stardust on enter
-    particleRef.current?.morphTo('records');
-  }, [particleRef]);
+    if (particleRef?.current) {
+      particleRef.current.morphTo('records');
+    }
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    // Initial particle state for records
-    particleRef.current?.morphTo('records');
-  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -53,102 +61,52 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
       reader.onload = (event) => {
         const url = event.target?.result as string;
         particleRef.current?.morphToImage(url);
-        // Add a message about the image
         setMessages(prev => [...prev, { id: Date.now().toString(), type: 'user', text: '[上传了一张图像]' }]);
-        
-        // Let AI acknowledge the image
-        setTimeout(async () => {
-          try {
-            const res = await ai.models.generateContent({
-              model: 'gemini-3-flash-preview',
-              contents: 'User just uploaded an image. As the "Mirror" of Star Dust, briefly acknowledge the visual atmosphere in CHINESE and ask what memory this represents. Keep it poetic and short.'
-            });
-            if (res.text) {
-              const aiMsg: Message = { id: Date.now().toString(), type: 'ai', text: res.text };
-              setMessages(prev => [...prev, aiMsg]);
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        }, 1000);
+
+        setTimeout(() => {
+          const aiMsg: Message = {
+            id: Date.now().toString(),
+            type: 'ai',
+            text: '这张画面里藏着怎样的故事？'
+          };
+          setMessages(prev => [...prev, aiMsg]);
+        }, 800);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if (!inputValue.trim()) return;
     const text = inputValue.trim();
     const userMsg: Message = { id: Date.now().toString(), type: 'user', text };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
-    
-    // Start processing visual
-    particleRef.current?.setProcessing(true);
 
-    try {
-      // 1. Generate text response first for perceived speed
-      const textPromise = ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `You are the "Mirror" of Star Dust. User thought: "${text}". 
-        Identify the emotional core or a key fact.
-        Ask one deep, leading question to explore this memory further. 
-        RESPOND ONLY IN CHINESE.
-        Keep it under 30 Chinese characters and mysterious.`,
-        config: { temperature: 0.8 }
-      });
-
-      // 2. Conditional visual generation
-      const visualPromise = ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: [{ text: `A clear, high-contrast, bold minimalist silhouette or iconic symbol representing "${text}". Dark cosmic background, ethereal white or gold glowing edges. No grayscale, very sharp black and white/gold. High density.` }],
-        config: { imageConfig: { aspectRatio: "1:1" } }
-      });
-
-      const [textRes, visualRes] = await Promise.all([textPromise, visualPromise]);
-
-      // Update particles
-      const candidates = visualRes.candidates;
-      if (candidates && candidates[0]?.content?.parts) {
-        for (const part of candidates[0].content.parts) {
-          if (part.inlineData) {
-            const imgUrl = `data:image/png;base64,${part.inlineData.data}`;
-            particleRef.current?.morphToImage(imgUrl);
-            break;
-          }
-        }
-      }
-
-      // Update text
-      if (textRes.text) {
-        const aiMsg: Message = { id: Date.now().toString(), type: 'ai', text: textRes.text };
-        setMessages(prev => [...prev, aiMsg]);
-      }
-    } catch (error) {
-      console.error("Mirror generation failed:", error);
-      const fallbackMsg: Message = { id: Date.now().toString(), type: 'ai', text: '星尘之中，我看见了你此刻的轮廓。' };
-      setMessages(prev => [...prev, fallbackMsg]);
-    } finally {
-      // Stop processing visual
-      particleRef.current?.setProcessing(false);
-    }
+    // 模拟思考延迟
+    setTimeout(() => {
+      const aiMsg: Message = {
+        id: Date.now().toString(),
+        type: 'ai',
+        text: getLocalResponse(text)
+      };
+      setMessages(prev => [...prev, aiMsg]);
+    }, 600 + Math.random() * 400);
   };
 
   const handleSave = () => {
-    if (!particleRef.current || isSaving) return;
-    
+    if (isSaving) return;
+
     setIsSaving(true);
-    // 1. Particle aggregation animation
-    particleRef.current.morphTo('aggregate');
-    
-    // 2. Switch chapter after a delay to allow animation to be seen
+    particleRef.current?.morphTo('aggregate');
+
     setTimeout(() => {
       onChapterChange?.('world');
     }, 1500);
   };
 
   return (
-    <div className="relative flex-1 flex flex-col pointer-events-none select-none min-h-0">
+    <div className="relative w-full h-full flex flex-col pointer-events-none select-none">
       {/* Top Header Placeholder */}
       <div className="shrink-0 flex justify-between items-center py-6 px-4 pt-4 z-50 pointer-events-auto">
         <div className="flex gap-4">
@@ -158,7 +116,7 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
           </div>
         </div>
 
-        <button 
+        <button
           onClick={() => onChapterChange?.('world')}
           className="group flex items-center gap-3 px-6 py-2.5 rounded-full glass-panel border-white/5 text-[10px] uppercase font-bold tracking-widest text-white/40 hover:text-white transition-all shadow-lg"
         >
@@ -168,13 +126,12 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
       </div>
 
       {/* Main Dialogue Scroll Area */}
-      <div className="flex-1 relative min-h-0 pointer-events-auto px-4 md:px-6 mb-4 flex flex-col">
-        {/* Messages grow from bottom up */}
-        <div 
+      <div className="flex-1 relative min-h-0 pointer-events-auto px-4 md:px-6 overflow-hidden">
+        <div
           ref={scrollRef}
-          className="w-full max-w-4xl mx-auto flex flex-col gap-6 md:gap-8 overflow-y-auto no-scrollbar scroll-smooth h-full p-4 md:p-8"
+          className="w-full max-w-4xl mx-auto flex flex-col gap-6 md:gap-8 overflow-y-auto no-scrollbar scroll-smooth h-full p-4 md:p-8 pb-4"
         >
-          <div className="flex-1" /> {/* Push content to bottom */}
+          <div className="flex-1" />
           <AnimatePresence initial={false}>
             {messages.map((msg) => (
               <motion.div
@@ -192,8 +149,8 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
                 )}
                 <div className={cn(
                   "max-w-[90%] md:max-w-[80%] px-6 md:px-8 py-4 md:py-5 rounded-2xl md:rounded-[2rem] text-base md:text-lg leading-relaxed relative backdrop-blur-2xl shadow-2xl transition-all border",
-                  msg.type === 'ai' 
-                    ? "bg-[#0A0A0A]/60 text-white/90 border-white/10 font-serif" 
+                  msg.type === 'ai'
+                    ? "bg-[#0A0A0A]/60 text-white/90 border-white/10 font-serif"
                     : "text-white font-medium bg-[#6A63F6]/20 border-[#6A63F6]/30"
                 )}>
                   {msg.text}
@@ -202,19 +159,17 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
             ))}
           </AnimatePresence>
         </div>
-        
+
         {/* Top Fade Overlay */}
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-mirror-deep to-transparent pointer-events-none z-10" />
       </div>
 
-      {/* Interaction Hub: Positioned at the bottom of the section */}
-      <div className="shrink-0 pb-6 md:pb-12 pt-0 px-4 md:px-6 pointer-events-auto flex flex-col items-center justify-end z-50">
-         
-         {/* Bottom Input Area aligned with Save Button */}
-         <div className="w-full max-w-4xl flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 relative z-10">
+      {/* 固定在底部的输入区域 */}
+      <div className="shrink-0 pb-8 md:pb-12 pt-6 pointer-events-auto z-50 bg-gradient-to-t from-mirror-deep via-mirror-deep/98 to-transparent">
+         <div className="w-full max-w-4xl mx-auto flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 relative z-10 px-4 md:px-6">
             {/* Input Container */}
             <div className="flex-1 glass-panel rounded-2xl md:rounded-[1.5rem] border-white/10 p-1.5 md:p-2 pl-3 md:pl-4 flex items-center gap-2 md:gap-3 shadow-[0_-10px_60px_rgba(0,0,0,0.8)] backdrop-blur-3xl">
-              <input 
+              <input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -222,7 +177,7 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
                 className="flex-1 bg-transparent py-2.5 md:py-3 px-1 md:px-2 text-white placeholder:text-white/40 outline-none font-medium text-sm md:text-[15px] tracking-wide"
               />
 
-              <input 
+              <input
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
@@ -232,11 +187,11 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
 
               <div className="flex items-center gap-1 md:gap-2">
                 {/* Minimal Mic Button inside Input */}
-                <button 
+                <button
                     className={cn(
                       "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300",
-                      isRecording 
-                        ? "bg-red-500/20 text-red-500 border border-red-500/30 scale-110 shadow-[0_0_20px_rgba(239,68,68,0.3)]" 
+                      isRecording
+                        ? "bg-red-500/20 text-red-500 border border-red-500/30 scale-110 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
                         : "text-white/40 hover:text-white hover:bg-white/10"
                     )}
                     onClick={() => setIsRecording(!isRecording)}
@@ -245,7 +200,7 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
                 </button>
 
                 {/* Image Upload Button */}
-                <button 
+                <button
                   className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 text-white/40 hover:text-white hover:bg-white/10"
                   onClick={() => fileInputRef.current?.click()}
                 >
@@ -253,7 +208,7 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
                 </button>
 
                 {/* Send Button */}
-                <button 
+                <button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -262,8 +217,8 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
                     disabled={!inputValue.trim()}
                     className={cn(
                       "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-[1rem] flex items-center justify-center transition-all",
-                      inputValue.trim() 
-                        ? "bg-[#6A63F6] text-white hover:bg-[#7b75f8] shadow-[0_0_20px_rgba(106,99,246,0.4)] active:scale-95" 
+                      inputValue.trim()
+                        ? "bg-[#6A63F6] text-white hover:bg-[#7b75f8] shadow-[0_0_20px_rgba(106,99,246,0.4)] active:scale-95"
                         : "bg-white/10 text-white/30 cursor-not-allowed"
                     )}
                 >
@@ -273,7 +228,7 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
             </div>
 
             {/* Save Memory Button placed alongside input */}
-            <button 
+            <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();

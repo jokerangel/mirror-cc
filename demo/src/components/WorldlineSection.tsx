@@ -90,10 +90,12 @@ export const WorldlineSection: React.FC<WorldlineSectionProps> = ({ particleRef 
   const [scrollPos, setScrollPos] = useState(0);
 
   useEffect(() => {
-    particleRef.current?.morphTo('world');
+    if (particleRef?.current) {
+      particleRef.current.morphTo('world');
+    }
     // Initial center position
     setScrollPos(window.innerWidth / 2);
-  }, [particleRef]);
+  }, []);
 
   return (
     <div className="relative w-full min-h-screen">
