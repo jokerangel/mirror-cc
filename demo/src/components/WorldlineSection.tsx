@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { GitBranch, History, MousePointer2, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ParticleHandle } from './ParticleBackground';
+import { getStoredNodes, StoredNode } from '../services/nodeStorageService';
 
 interface WorldlineNode {
   id: string;
@@ -12,6 +13,7 @@ interface WorldlineNode {
   title: string;
   description: string;
   color: string;
+  isNew?: boolean;
 }
 
 const NODES: WorldlineNode[] = [
@@ -83,11 +85,71 @@ const NODES: WorldlineNode[] = [
 interface WorldlineSectionProps {
   progress: number;
   particleRef: React.RefObject<ParticleHandle | null>;
+  highlightedNodeId?: string;
 }
 
-export const WorldlineSection: React.FC<WorldlineSectionProps> = ({ particleRef }) => {
+// 将存储的节点转换为世界线节点格式
+const convertStoredNodeToWorldlineNode = (node: StoredNode, isNew = false): WorldlineNode => {
+  const yearMatch = node.scenario.timePoint.match(/(\d{4})/);
+  const year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
+
+  // 提取月份信息
+  const monthMatch = node.scenario.timePoint.match(/(\d{1,2})月|([一二三四五六七八九十]+)月/);
+  let month = '';
+  if (monthMatch) {
+    month = monthMatch[1] ? `${monthMatch[1]}月` : `${monthMatch[2]}月`;
+  } else if (node.scenario.timePoint.includes('去年')) {
+    month = '去年';
+  } else if (node.scenario.timePoint.includes('前年')) {
+    month = '前年';
+  } else {
+    month = '其他';
+  }
+
+  // 根据节点类型确定颜色
+  const colorMap: Record<string, string> = {
+    'origin': 'bg-mirror-gold',
+    'branch': 'bg-purple-400',
+    'ending': 'bg-emerald-400',
+    'parallel': 'bg-blue-400',
+    'pending': 'bg-gray-400'
+  };
+
+  return {
+    id: node.id,
+    year,
+    month,
+    type: 'deduction',
+    title: node.scenario.title,
+    description: node.scenario.predicate || node.summary,
+    color: colorMap[node.nodeType] || 'bg-mirror-gold',
+    isNew
+  };
+};
+
+export const WorldlineSection: React.FC<WorldlineSectionProps> = ({ particleRef, highlightedNodeId }) => {
   const [selectedNode, setSelectedNode] = useState<WorldlineNode | null>(null);
   const [scrollPos, setScrollPos] = useState(0);
+  const [nodes, setNodes] = useState<WorldlineNode[]>([]);
+  const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
+
+  // 加载存储的节点并合并
+  useEffect(() => {
+    const storedNodes = getStoredNodes();
+    const worldlineNodes = storedNodes.map(node => convertStoredNodeToWorldlineNode(node));
+    // 合并默认节点和存储的节点
+    setNodes([...NODES, ...worldlineNodes]);
+  }, []);
+
+  // 高亮特定节点
+  useEffect(() => {
+    if (highlightedNodeId) {
+      setHighlightedNode(highlightedNodeId);
+      // 5秒后移除高亮
+      const timer = setTimeout(() => setHighlightedNode(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedNodeId]);
 
   useEffect(() => {
     if (particleRef?.current) {
@@ -175,21 +237,22 @@ export const WorldlineSection: React.FC<WorldlineSectionProps> = ({ particleRef 
               />
             ))}
 
-            {NODES.map((node, i) => {
+            {nodes.map((node, i) => {
               // Calculate organic offsets
               const verticalShift = Math.sin(i * 1.5) * 150 + (Math.cos(i * 2.2) * 50);
               const horizontalShift = (i * 450); // Increased spacing to accommodate larger nodes
               const microShift = Math.sin(i * 3.7) * 40;
-              
+
               // Proximity to center logic
               const nodeX = horizontalShift + microShift + (window.innerWidth * 0.45); // Approximate offset
               const distToCenter = Math.abs(nodeX - scrollPos);
               const maxDist = 600;
               const proximity = Math.max(0, 1 - distToCenter / maxDist);
-              
+
               // Scale from base 0.5x to 1.5x (halved from previous 1x-3x)
               const dynamicScale = 0.5 + (proximity * 1);
               const opacity = 0.3 + (proximity * 0.7);
+              const isHighlighted = highlightedNode === node.id || node.isNew;
 
               return (
                 <motion.div
@@ -227,14 +290,27 @@ export const WorldlineSection: React.FC<WorldlineSectionProps> = ({ particleRef 
                     onClick={() => setSelectedNode(node)}
                     className="relative w-8 h-8 flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
                   >
-                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm group-hover:bg-white/10 group-hover:border-white/30 transition-all duration-700 flex items-center justify-center relative shadow-[0_0_50px_rgba(255,255,255,0.05)]">
+                    <div className={cn(
+                      "w-16 h-16 md:w-20 md:h-20 rounded-full backdrop-blur-sm transition-all duration-700 flex items-center justify-center relative",
+                      isHighlighted
+                        ? "bg-mirror-gold/10 border-2 border-mirror-gold/50 shadow-[0_0_30px_rgba(212,165,116,0.3)]"
+                        : "bg-white/5 border border-white/10 group-hover:bg-white/10 group-hover:border-white/30 shadow-[0_0_50px_rgba(255,255,255,0.05)]"
+                    )}>
                       <div className={cn("w-2 h-2 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)]", node.color)} />
-                      {/* Pulsing ring */}
-                      <motion.div 
-                        animate={{ scale: [1, 1.5], opacity: [0.3, 0] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className={cn("absolute inset-2 rounded-full border border-current opacity-20", node.color.replace('bg-', 'text-'))}
-                      />
+                      {isHighlighted && (
+                        <motion.div
+                          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                          className="absolute inset-0 rounded-full border-2 border-mirror-gold/30"
+                        />
+                      )}
+                      {!isHighlighted && (
+                        <motion.div
+                          animate={{ scale: [1, 1.5], opacity: [0.3, 0] }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                          className={cn("absolute inset-2 rounded-full border border-current opacity-20", node.color.replace('bg-', 'text-'))}
+                        />
+                      )}
                     </div>
                     
                     {/* Floating Label */}

@@ -4,6 +4,8 @@ import { EntryAnimation } from './components/EntryAnimation';
 import { DiscoverySection } from './components/DiscoverySection';
 import { RecordsSection } from './components/RecordsSection';
 import { WorldlineSection } from './components/WorldlineSection';
+import { DeductionSection } from './components/DeductionSection';
+import { StoredNode } from './services/nodeStorageService';
 
 type Chapter = 'discovery' | 'records' | 'deduction' | 'world' | 'injection';
 
@@ -20,6 +22,7 @@ export default function App() {
   const [activeChapter, setActiveChapter] = useState<Chapter>('discovery');
   const [showMenu, setShowMenu] = useState(false);
   const [progress] = useState(40);
+  const [highlightedNodeId, setHighlightedNodeId] = useState<string | undefined>();
   const particleRef = useRef<ParticleHandle>(null);
 
   const currentIdx = CHAPTERS.findIndex(c => c.id === activeChapter);
@@ -30,6 +33,14 @@ export default function App() {
       particleRef.current.morphTo(activeChapter);
     }
   }, [showEntry, activeChapter]);
+
+  // 处理章节切换，支持传入保存的节点
+  const handleChapterChange = (chapter: string, savedNode?: StoredNode) => {
+    setActiveChapter(chapter as Chapter);
+    if (savedNode) {
+      setHighlightedNodeId(savedNode.id);
+    }
+  };
 
   if (showEntry) {
     return (
@@ -81,40 +92,19 @@ export default function App() {
         );
       case 'deduction':
         return (
-          <div style={{ textAlign: 'center', padding: '20px', maxWidth: '700px', margin: '0 auto' }}>
-            <div style={{ color: '#e8d5b7', fontSize: '14px', letterSpacing: '0.2em', marginBottom: '8px' }}>PARALLEL REALITY</div>
-            <h2 style={{ fontSize: '32px', marginBottom: '12px', color: '#fff', fontFamily: 'serif', fontStyle: 'italic' }}>你想推演哪一种可能？</h2>
-            <div style={{ marginTop: '40px', display: 'flex', gap: '24px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button style={{
-                padding: '32px',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '20px',
-                color: '#fff',
-                cursor: 'pointer',
-                minWidth: '220px',
-                textAlign: 'left',
-                transition: 'all 0.3s'
-              }}>
-                <div style={{ fontSize: '28px', marginBottom: '16px', color: '#e8d5b7' }}>⏮</div>
-                <div style={{ fontSize: '20px', marginBottom: '8px' }}>如果当初...</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>回溯历史的转折点</div>
-              </button>
-              <button style={{
-                padding: '32px',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '20px',
-                color: '#fff',
-                cursor: 'pointer',
-                minWidth: '220px',
-                textAlign: 'left',
-                transition: 'all 0.3s'
-              }}>
-                <div style={{ fontSize: '28px', marginBottom: '16px', color: '#d4a574' }}>🔮</div>
-                <div style={{ fontSize: '20px', marginBottom: '8px' }}>如果未来...</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>预演未来的轨迹</div>
-              </button>
+          <div style={{
+            width: '100%',
+            height: 'calc(100vh - 140px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 40px'
+          }}>
+            <div style={{ width: '100%', maxWidth: '1200px', height: '100%' }}>
+              <DeductionSection
+                onChapterChange={handleChapterChange}
+                particleRef={particleRef}
+              />
             </div>
           </div>
         );
@@ -127,7 +117,7 @@ export default function App() {
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <WorldlineSection progress={progress} particleRef={particleRef} />
+            <WorldlineSection progress={progress} particleRef={particleRef} highlightedNodeId={highlightedNodeId} />
           </div>
         );
       case 'injection':
@@ -199,8 +189,8 @@ export default function App() {
       </main>
 
       {/* Bottom Navigation */}
-      <footer style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '64px', padding: '0 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 40, background: 'linear-gradient(to top, rgba(10,10,10,0.4), transparent)' }}>
-        <nav style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+      <footer style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '80px', padding: '0 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 40, background: 'linear-gradient(to top, rgba(10,10,10,0.4), transparent)' }}>
+        <nav style={{ display: 'flex', gap: '48px', alignItems: 'center' }}>
           {CHAPTERS.map((c) => (
             <button
               key={c.id}
@@ -208,7 +198,7 @@ export default function App() {
               style={{
                 background: 'transparent',
                 border: 'none',
-                fontSize: '10px',
+                fontSize: '20px',
                 letterSpacing: '0.2em',
                 textTransform: 'uppercase',
                 cursor: 'pointer',
