@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { DialogueSession } from './DialogueSession';
 import { ParticleHandle } from './ParticleBackground';
 import { extractTraits } from '../services/geminiService';
+import { MessageCircle, Sparkles } from 'lucide-react';
 
 interface DiscoverySectionProps {
   progress: number;
@@ -58,73 +59,73 @@ export const DiscoverySection: React.FC<DiscoverySectionProps> = ({ progress, pa
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'auto',
-        padding: '60px 40px'
+        overflow: 'hidden',
+        padding: '40px 40px'
       }}>
         {/* 标题区域 */}
-        <div style={{ textAlign: 'center', marginBottom: '56px' }}>
-          <div style={{ fontSize: '11px', letterSpacing: '0.3em', color: '#d4a574', marginBottom: '20px', fontWeight: 'bold' }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ fontSize: '11px', letterSpacing: '0.3em', color: '#d4a574', marginBottom: '12px', fontWeight: 'bold' }}>
             了解程度 20%
           </div>
-          <h1 style={{ fontSize: '36px', fontFamily: 'serif', fontStyle: 'italic', color: '#fff', marginBottom: '16px' }}>
+          <h1 style={{ fontSize: '30px', fontFamily: 'serif', fontStyle: 'italic', color: '#fff', marginBottom: '10px' }}>
             让我更了解你
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.4)', maxWidth: '480px', lineHeight: 1.7, fontSize: '15px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', maxWidth: '480px', lineHeight: 1.6, fontSize: '14px' }}>
             每一个回答都是对镜像的一次补完。选择一种方式，开启你的自我探索之旅。
           </p>
         </div>
 
         {/* 功能卡片 */}
-        <div style={{ display: 'flex', gap: '24px', maxWidth: '600px', width: '100%', marginBottom: '40px' }}>
+        <div style={{ display: 'flex', gap: '24px', maxWidth: '700px', width: '100%', marginBottom: '32px' }}>
           <button
             onClick={() => setHasStarted(true)}
-            style={{
-              flex: 1,
-              padding: '36px',
-              background: 'rgba(10, 10, 10, 0.4)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '24px',
-              textAlign: 'left',
-              cursor: 'pointer',
-              transition: 'all 0.3s'
-            }}
+            className="group relative p-8 rounded-3xl bg-white/[0.02] border border-white/10 hover:border-mirror-gold/30 transition-all text-left overflow-hidden"
+            style={{ flex: 1 }}
           >
-            <div style={{ fontSize: '40px', marginBottom: '20px' }}>💬</div>
-            <div style={{ fontSize: '22px', fontFamily: 'serif', fontStyle: 'italic', color: '#fff', marginBottom: '10px' }}>快速对话</div>
-            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)', marginBottom: '20px', lineHeight: 1.6 }}>5-10个问题，快速生成画像</div>
-            <div style={{ fontSize: '12px', color: 'rgba(212,165,116,0.6)', letterSpacing: '0.1em' }}>约3-5分钟</div>
+            <div className="absolute inset-0 bg-gradient-to-br from-mirror-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="text-mirror-gold mb-6">
+                <MessageCircle size={36} strokeWidth={1.5} />
+              </div>
+              <h3 className="text-2xl font-display text-white mb-3">快速对话</h3>
+              <p className="text-white/50 text-sm leading-relaxed mb-4">
+                5-10个问题，快速生成你的画像轮廓。
+              </p>
+              <div className="text-xs text-white/30">
+                约3-5分钟，适合快速了解自己
+              </div>
+            </div>
           </button>
 
           <button
             onClick={() => setHasStarted(true)}
-            style={{
-              flex: 1,
-              padding: '36px',
-              background: 'rgba(10, 10, 10, 0.4)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '24px',
-              textAlign: 'left',
-              cursor: 'pointer',
-              transition: 'all 0.3s'
-            }}
+            className="group relative p-8 rounded-3xl bg-white/[0.02] border border-white/10 hover:border-mirror-accent/30 transition-all text-left overflow-hidden"
+            style={{ flex: 1 }}
           >
-            <div style={{ fontSize: '40px', marginBottom: '20px' }}>🌟</div>
-            <div style={{ fontSize: '22px', fontFamily: 'serif', fontStyle: 'italic', color: '#fff', marginBottom: '10px' }}>深度探索</div>
-            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)', marginBottom: '20px', lineHeight: 1.6 }}>沉浸式对话，进行深度画像</div>
-            <div style={{ fontSize: '12px', color: 'rgba(212,165,116,0.6)', letterSpacing: '0.1em' }}>约10-15分钟</div>
+            <div className="absolute inset-0 bg-gradient-to-br from-mirror-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="text-mirror-accent mb-6">
+                <Sparkles size={36} strokeWidth={1.5} />
+              </div>
+              <h3 className="text-2xl font-display text-white mb-3">深度探索</h3>
+              <p className="text-white/50 text-sm leading-relaxed mb-4">
+                沉浸式对话，进行深度灵魂画像。
+              </p>
+              <div className="text-xs text-white/30">
+                约10-15分钟，适合完整探索
+              </div>
+            </div>
           </button>
         </div>
 
         {/* 导入按钮 */}
         <button style={{
-          padding: '16px 32px',
+          padding: '14px 28px',
           background: 'rgba(10, 10, 10, 0.4)',
           backdropFilter: 'blur(20px)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '999px',
-          color: 'rgba(255,255,255,0.5)',
+          color: 'rgba(255,255,255,0.4)',
           fontSize: '12px',
           letterSpacing: '0.15em',
           cursor: 'pointer',

@@ -42,7 +42,10 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
 
   useEffect(() => {
     if (particleRef?.current) {
-      particleRef.current.morphTo('records');
+      // 将粒子定位到左侧区域中心
+      const centerX = window.innerWidth * 0.25; // 左侧区域的中心
+      const centerY = window.innerHeight * 0.5;
+      particleRef.current.morphTo('records', { centerX, centerY });
     }
   }, []);
 
@@ -106,75 +109,114 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col pointer-events-none select-none">
-      {/* Top Header Placeholder */}
-      <div className="shrink-0 flex justify-between items-center py-6 px-4 pt-4 z-50 pointer-events-auto">
-        <div className="flex gap-4">
-          <div className="px-4 py-2 rounded-full glass-panel border-white/5 flex items-center gap-2">
-             <div className="w-1.5 h-1.5 rounded-full bg-mirror-gold shadow-[0_0_8px_rgba(212,165,116,0.6)]" />
-             <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/50">碎片模式</span>
+    <div className="relative w-full h-full flex pointer-events-none select-none">
+      {/* 左侧：粒子图像区域 - 透明背景让粒子显示 */}
+      <div className="w-1/2 h-full flex flex-col items-center justify-center relative z-10">
+        {/* 顶部标签 */}
+        <div className="absolute top-6 left-6 pointer-events-auto">
+          <div className="px-3 py-1.5 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-mirror-gold shadow-[0_0_8px_rgba(212,165,116,0.6)] animate-pulse" />
+            <span className="text-[10px] uppercase font-bold tracking-[0.15em] text-white/60">碎片模式</span>
           </div>
         </div>
 
-        <button
-          onClick={() => onChapterChange?.('world')}
-          className="group flex items-center gap-3 px-6 py-2.5 rounded-full glass-panel border-white/5 text-[10px] uppercase font-bold tracking-widest text-white/40 hover:text-white transition-all shadow-lg"
-        >
-          <History size={14} className="group-hover:rotate-[-45deg] transition-transform" />
-          查看记录 <span className="opacity-20 ml-1">08</span>
-        </button>
-      </div>
-
-      {/* Main Dialogue Scroll Area */}
-      <div className="flex-1 relative min-h-0 pointer-events-auto px-4 md:px-6 overflow-hidden">
-        <div
-          ref={scrollRef}
-          className="w-full max-w-4xl mx-auto flex flex-col gap-6 md:gap-8 overflow-y-auto no-scrollbar scroll-smooth h-full p-4 md:p-8 pb-4"
-        >
-          <div className="flex-1" />
-          <AnimatePresence initial={false}>
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 30, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-                className={cn(
-                  "flex flex-col relative",
-                  msg.type === 'user' ? "items-end" : "items-start"
-                )}
-              >
-                {msg.type === 'ai' && (
-                  <div className="mb-2 ml-4 text-[10px] md:text-[11px] font-medium tracking-wide text-white/30">星尘</div>
-                )}
-                <div className={cn(
-                  "max-w-[90%] md:max-w-[80%] px-6 md:px-8 py-4 md:py-5 rounded-2xl md:rounded-[2rem] text-base md:text-lg leading-relaxed relative backdrop-blur-2xl shadow-2xl transition-all border",
-                  msg.type === 'ai'
-                    ? "bg-[#0A0A0A]/60 text-white/90 border-white/10 font-serif"
-                    : "text-white font-medium bg-[#6A63F6]/20 border-[#6A63F6]/30"
-                )}>
-                  {msg.text}
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+        {/* 中央提示 */}
+        <div className="text-center pointer-events-auto px-8">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full border border-white/10 flex items-center justify-center bg-white/[0.02]">
+            <Sparkles size={32} className="text-mirror-gold/60" />
+          </div>
+          <div className="text-white/30 text-[10px] uppercase tracking-[0.2em] mb-2">
+            记忆粒子
+          </div>
+          <div className="text-white/60 text-sm font-serif italic max-w-xs leading-relaxed">
+            你的碎片记忆正在汇聚
+          </div>
+          <div className="text-white/25 text-xs mt-2">
+            等待成形...
+          </div>
         </div>
 
-        {/* Top Fade Overlay */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-mirror-deep to-transparent pointer-events-none z-10" />
+        {/* 底部按钮 */}
+        <div className="absolute bottom-6 left-6 pointer-events-auto">
+          <button
+            onClick={() => onChapterChange?.('world')}
+            className="group flex items-center gap-2 px-4 py-2 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 text-[10px] uppercase font-bold tracking-widest text-white/50 hover:text-white hover:border-white/30 transition-all"
+          >
+            <History size={12} className="group-hover:rotate-[-45deg] transition-transform" />
+            查看世界线
+          </button>
+        </div>
       </div>
 
-      {/* 固定在底部的输入区域 */}
-      <div className="shrink-0 pb-8 md:pb-12 pt-6 pointer-events-auto z-50 bg-gradient-to-t from-mirror-deep via-mirror-deep/98 to-transparent">
-         <div className="w-full max-w-4xl mx-auto flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 relative z-10 px-4 md:px-6">
-            {/* Input Container */}
-            <div className="flex-1 glass-panel rounded-2xl md:rounded-[1.5rem] border-white/10 p-1.5 md:p-2 pl-3 md:pl-4 flex items-center gap-2 md:gap-3 shadow-[0_-10px_60px_rgba(0,0,0,0.8)] backdrop-blur-3xl">
+      {/* 右侧：对话框区域 */}
+      <div className="w-1/2 h-full flex flex-col bg-mirror-deep/80 backdrop-blur-sm border-l border-white/10">
+        {/* 对话标题 */}
+        <div className="shrink-0 px-5 py-3 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-mirror-gold/10 flex items-center justify-center">
+              <Sparkles size={14} className="text-mirror-gold" />
+            </div>
+            <div>
+              <div className="text-white/90 text-sm font-medium">星尘</div>
+              <div className="text-white/40 text-[10px]">记忆收集助手</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] text-white/40">在线</span>
+          </div>
+        </div>
+
+        {/* 对话内容区域 */}
+        <div className="flex-1 relative min-h-0 pointer-events-auto overflow-hidden">
+          <div
+            ref={scrollRef}
+            className="w-full h-full overflow-y-auto no-scrollbar scroll-smooth p-4 md:p-6"
+          >
+            <div className="flex-1" />
+            <AnimatePresence initial={false}>
+              {messages.map((msg) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                  className={cn(
+                    "flex flex-col relative mb-4",
+                    msg.type === 'user' ? "items-end" : "items-start"
+                  )}
+                >
+                  {msg.type === 'ai' && (
+                    <div className="mb-1.5 ml-3 text-[9px] font-medium tracking-wide text-white/30">星尘</div>
+                  )}
+                  <div className={cn(
+                    "max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed backdrop-blur-xl border",
+                    msg.type === 'ai'
+                      ? "bg-white/[0.03] text-white/90 border-white/10 font-serif rounded-tl-sm rounded-tr-xl rounded-br-xl rounded-bl-xl"
+                      : "text-white font-medium bg-mirror-accent/20 border-mirror-accent/30 rounded-tl-xl rounded-tr-sm rounded-br-xl rounded-bl-xl"
+                  )}>
+                    {msg.text}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {/* 顶部渐变遮罩 */}
+          <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-mirror-deep to-transparent pointer-events-none z-10" />
+        </div>
+
+        {/* 固定底部输入区域 */}
+        <div className="shrink-0 p-4 pointer-events-auto border-t border-white/5 bg-mirror-deep/50">
+          <div className="flex flex-col gap-3">
+            {/* 输入框 */}
+            <div className="flex items-center gap-2 glass-panel rounded-xl border-white/10 p-1.5">
               <input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="这些记忆正在汇聚..."
-                className="flex-1 bg-transparent py-2.5 md:py-3 px-1 md:px-2 text-white placeholder:text-white/40 outline-none font-medium text-sm md:text-[15px] tracking-wide"
+                placeholder="记录你的碎片记忆..."
+                className="flex-1 bg-transparent py-2 px-3 text-white text-sm placeholder:text-white/30 outline-none"
               />
 
               <input
@@ -185,72 +227,56 @@ export const RecordsSection: React.FC<RecordsSectionProps> = ({ onChapterChange,
                 onChange={handleImageUpload}
               />
 
-              <div className="flex items-center gap-1 md:gap-2">
-                {/* Minimal Mic Button inside Input */}
+              <div className="flex items-center gap-1">
                 <button
-                    className={cn(
-                      "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300",
-                      isRecording
-                        ? "bg-red-500/20 text-red-500 border border-red-500/30 scale-110 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-                        : "text-white/40 hover:text-white hover:bg-white/10"
-                    )}
-                    onClick={() => setIsRecording(!isRecording)}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                    isRecording
+                      ? "bg-red-500/20 text-red-400"
+                      : "text-white/40 hover:text-white hover:bg-white/10"
+                  )}
+                  onClick={() => setIsRecording(!isRecording)}
                 >
-                  <Mic size={18} className="md:w-5 md:h-5" />
+                  <Mic size={16} />
                 </button>
 
-                {/* Image Upload Button */}
                 <button
-                  className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 text-white/40 hover:text-white hover:bg-white/10"
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-all text-white/40 hover:text-white hover:bg-white/10"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <ImageIcon size={18} className="md:w-5 md:h-5" />
+                  <ImageIcon size={16} />
                 </button>
 
-                {/* Send Button */}
                 <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleSendMessage();
-                    }}
-                    disabled={!inputValue.trim()}
-                    className={cn(
-                      "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-[1rem] flex items-center justify-center transition-all",
-                      inputValue.trim()
-                        ? "bg-[#6A63F6] text-white hover:bg-[#7b75f8] shadow-[0_0_20px_rgba(106,99,246,0.4)] active:scale-95"
-                        : "bg-white/10 text-white/30 cursor-not-allowed"
-                    )}
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim()}
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                    inputValue.trim()
+                      ? "bg-mirror-accent text-white"
+                      : "bg-white/10 text-white/30 cursor-not-allowed"
+                  )}
                 >
-                  <Send size={16} className={inputValue.trim() ? "translate-x-[1px] md:translate-x-[2px] transition-transform" : "md:w-[18px] md:h-[18px]"} />
+                  <Send size={14} />
                 </button>
               </div>
             </div>
 
-            {/* Save Memory Button placed alongside input */}
+            {/* 保存按钮 */}
             <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSave();
-                }}
-                disabled={isSaving}
-                className={cn(
-                  "px-6 h-14 md:h-[64px] rounded-2xl md:rounded-[1.5rem] border border-[rgba(106,99,246,0.3)] hover:border-[rgba(106,99,246,0.8)] bg-black/40 hover:bg-[#6A63F6]/20 text-[#a39df8] hover:text-white text-sm font-medium transition-all shadow-[0_4px_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl flex items-center justify-center gap-2 group whitespace-nowrap",
-                  isSaving && "opacity-50 cursor-wait"
-                )}
-              >
-                {isSaving ? "存档中..." : "保存记忆"}
-                <Sparkles size={16} className="text-[#a39df8]/50 group-hover:text-white transition-colors" />
+              onClick={handleSave}
+              disabled={isSaving}
+              className={cn(
+                "w-full py-2.5 rounded-xl border border-mirror-gold/30 bg-mirror-gold/10 hover:bg-mirror-gold/20 text-mirror-gold text-xs font-medium transition-all flex items-center justify-center gap-2",
+                isSaving && "opacity-50 cursor-wait"
+              )}
+            >
+              {isSaving ? "存档中..." : "保存记忆"}
+              <Sparkles size={14} />
             </button>
-         </div>
-
-         <div className="hidden md:flex mt-6 text-[10px] uppercase tracking-[0.3em] font-bold text-white/20 select-none items-center gap-4">
-           PRESS ENTER TO SEND
-         </div>
-
+          </div>
+        </div>
       </div>
-
 
       {/* Background Dust/Environment Decor */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.02] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />

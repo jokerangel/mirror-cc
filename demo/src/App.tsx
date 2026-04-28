@@ -6,6 +6,7 @@ import { RecordsSection } from './components/RecordsSection';
 import { WorldlineSection } from './components/WorldlineSection';
 import { DeductionSection } from './components/DeductionSection';
 import { StoredNode } from './services/nodeStorageService';
+import { MessageSquare, FileText, Calendar, Globe } from 'lucide-react';
 
 type Chapter = 'discovery' | 'records' | 'deduction' | 'world' | 'injection';
 
@@ -122,30 +123,86 @@ export default function App() {
         );
       case 'injection':
         return (
-          <div style={{ textAlign: 'center', padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
-            <div style={{ fontSize: '48px', marginBottom: '24px' }}>🗄</div>
-            <h2 style={{ fontSize: '28px', marginBottom: '12px', color: '#fff', fontFamily: 'serif', fontStyle: 'italic' }}>记忆注入</h2>
-            <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '40px', lineHeight: 1.6 }}>
-              同步你在其他平台的对话、日志与日历，让我们能更全面地拼凑出你的灵魂图景
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              {['AI聊天记录', '个人笔记', '日历事件', '社交动态'].map((item, i) => (
-                <button key={i} style={{
-                  padding: '32px 24px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '16px',
-                  color: 'rgba(255,255,255,0.5)',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  transition: 'all 0.3s'
-                }}>
-                  <div style={{ fontSize: '24px', marginBottom: '8px', opacity: 0.5 }}>{['💬', '📝', '📅', '🌐'][i]}</div>
-                  {item}
-                </button>
-              ))}
+          <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden px-4 md:px-8">
+            <div className="text-center mb-5">
+              <div className="text-[10px] tracking-[0.3em] text-mirror-gold mb-2 font-bold uppercase">
+                数据同步
+              </div>
+              <h1 className="text-xl md:text-2xl font-serif italic text-white mb-2">
+                记忆注入
+              </h1>
+              <p className="text-white/40 max-w-md mx-auto text-xs leading-relaxed">
+                同步其他平台的对话、日志与日历，更全面地拼凑你的灵魂图景
+              </p>
             </div>
-            <p style={{ marginTop: '32px', fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>所有数据将经过端对端加密</p>
+
+            <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-2xl w-full mb-4">
+              <button className="group relative p-4 md:p-5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-mirror-gold/30 transition-all text-left overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-mirror-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative">
+                  <div className="text-mirror-gold mb-3">
+                    <MessageSquare size={24} strokeWidth={1.5} />
+                  </div>
+                  <h3 className="text-base font-display text-white mb-1.5">AI聊天记录</h3>
+                  <p className="text-white/50 text-[11px] leading-relaxed mb-2">
+                    导入ChatGPT、Claude对话
+                  </p>
+                  <div className="text-[10px] text-white/30">
+                    JSON / TXT
+                  </div>
+                </div>
+              </button>
+
+              <button className="group relative p-4 md:p-5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-mirror-accent/30 transition-all text-left overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-mirror-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative">
+                  <div className="text-mirror-accent mb-3">
+                    <FileText size={24} strokeWidth={1.5} />
+                  </div>
+                  <h3 className="text-base font-display text-white mb-1.5">个人笔记</h3>
+                  <p className="text-white/50 text-[11px] leading-relaxed mb-2">
+                    导入Notion、Obsidian笔记
+                  </p>
+                  <div className="text-[10px] text-white/30">
+                    Markdown / HTML
+                  </div>
+                </div>
+              </button>
+
+              <button className="group relative p-4 md:p-5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-mirror-gold/30 transition-all text-left overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-mirror-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative">
+                  <div className="text-mirror-gold mb-3">
+                    <Calendar size={24} strokeWidth={1.5} />
+                  </div>
+                  <h3 className="text-base font-display text-white mb-1.5">日历事件</h3>
+                  <p className="text-white/50 text-[11px] leading-relaxed mb-2">
+                    同步Google、Apple日历
+                  </p>
+                  <div className="text-[10px] text-white/30">
+                    自动识别重要事件
+                  </div>
+                </div>
+              </button>
+
+              <button className="group relative p-4 md:p-5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-mirror-accent/30 transition-all text-left overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-mirror-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative">
+                  <div className="text-mirror-accent mb-3">
+                    <Globe size={24} strokeWidth={1.5} />
+                  </div>
+                  <h3 className="text-base font-display text-white mb-1.5">社交动态</h3>
+                  <p className="text-white/50 text-[11px] leading-relaxed mb-2">
+                    导入微博、朋友圈数据
+                  </p>
+                  <div className="text-[10px] text-white/30">
+                    本地处理，隐私安全
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <p className="text-[10px] text-white/25">所有数据将经过端对端加密</p>
           </div>
         );
     }
