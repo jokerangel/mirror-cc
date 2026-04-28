@@ -2,7 +2,7 @@ import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 
 export interface ParticleHandle {
   morphTo: (shape: 'discovery' | 'records' | 'deduction' | 'world' | 'injection' | 'idle' | 'aggregate', options?: { centerX?: number, centerY?: number }) => void;
-  morphToImage: (url: string) => void;
+  morphToImage: (url: string, options?: { centerX?: number, centerY?: number, panelWidth?: number, panelHeight?: number, animate?: boolean }) => void;
   setProcessing: (active: boolean) => void;
 }
 
@@ -12,6 +12,8 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
   const currentShape = useRef<string>('idle');
   const morphCenter = useRef({ x: 0, y: 0 });
   const isProcessing = useRef(false);
+  const lastImageUrl = useRef<string>('');
+  const lastImageOptions = useRef<{ centerX?: number; centerY?: number; panelWidth?: number; panelHeight?: number }>({});
 
   const getShapePoints = (shape: string, w: number, h: number, options?: { centerX?: number, centerY?: number }): Point3D[] => {
     const points: Point3D[] = [];
@@ -26,7 +28,7 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
         for (let i = 0; i < count; i++) {
           const rand = i / count;
           let x, y, z;
-          
+
           if (rand < 0.15) {
             // Head (Sphere)
             const r = 45;
@@ -37,7 +39,6 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
             z = r * Math.cos(phi);
           } else if (rand < 0.2) {
             // Neck
-            // r is not used here as neck is a simple random distribution
             x = (Math.random() - 0.5) * 30;
             y = -110 + (Math.random() - 0.5) * 40;
             z = (Math.random() - 0.5) * 30;
@@ -51,8 +52,7 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
             x = rX * Math.sin(phi) * Math.cos(theta);
             y = 20 + rY * Math.sin(phi) * Math.sin(theta);
             z = rZ * Math.cos(phi);
-            // Slice off the bottom part of the ellipsoid to make it a bust
-            if (y > 100) y = 100; 
+            if (y > 100) y = 100;
           } else {
             // Aura / Background particles
             const r = 250 + Math.random() * 50;
@@ -73,16 +73,13 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
       case 'world':
         // Horizontal "World Tree" / Branching Timeline
         for (let i = 0; i < count; i++) {
-          const t = Math.random(); // Randomly distribute across time
+          const t = Math.random();
           let x, y, z;
-          
-          // x is time axis
+
           x = (t - 0.5) * w * 1.5;
-          
-          // Main trunk wave
+
           const trunkY = Math.sin(t * 3) * 30;
-          
-          // Pseudo-branching based on time
+
           const branchIntervals = [0.1, 0.25, 0.4, 0.6, 0.75, 0.9];
           let closestBranch = branchIntervals[0];
           let minDist = 1;
@@ -93,23 +90,21 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
              }
           });
 
-          // Branch logic: if we are after a branch start point, some particles follow the branch
           const branchID = branchIntervals.indexOf(closestBranch);
           const branchDir = (branchID % 2 === 0 ? 1 : -1);
-          const branchStrength = Math.max(0, (t - closestBranch) * 5); // Growth over time
-          const isBranchParticle = i % 10 < 4 && t > closestBranch; // 40% chance if past branch start
-          
+          const branchStrength = Math.max(0, (t - closestBranch) * 5);
+          const isBranchParticle = i % 10 < 4 && t > closestBranch;
+
           let targetY = trunkY;
           if (isBranchParticle) {
              targetY += branchDir * branchStrength * 120;
           }
 
-          // Scatter/Dispersion (Inspired by the tree image)
-          const isCore = i % 10 < 2; // 20% follow the core line strictly
+          const isCore = i % 10 < 2;
           const scatterRadius = isCore ? 5 : (30 + Math.random() * 150);
           const angle = Math.random() * Math.PI * 2;
           const r = Math.pow(Math.random(), 1.5) * scatterRadius;
-          
+
           x += Math.cos(angle) * r * 0.3;
           y = targetY + Math.sin(angle) * r;
           z = (Math.random() - 0.5) * 120;
@@ -151,20 +146,73 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
     return points;
   };
 
+  const imageToSampledPoints = (
+    img: HTMLImageElement,
+    centerX: number,
+    centerY: number,
+    panelW: number,
+    panelH: number
+  ): { x: number; y: number; color: string }[] => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return [];
+
+    let imgW = img.width;
+    let imgH = img.height;
+    const scale = Math.min(panelW / imgW, panelH / imgH, 1);
+    imgW = Math.floor(imgW * scale);
+    imgH = Math.floor(imgH * scale);
+
+    canvas.width = imgW;
+    canvas.height = imgH;
+    ctx.drawImage(img, 0, 0, imgW, imgH);
+
+    const imageData = ctx.getImageData(0, 0, imgW, imgH).data;
+    const sampledPoints: { x: number; y: number; color: string }[] = [];
+    const count = 100000;
+    const step = Math.max(1, Math.ceil(Math.sqrt((imgW * imgH) / count)));
+
+    for (let sy = 0; sy < imgH; sy += step) {
+      for (let sx = 0; sx < imgW; sx += step) {
+        const index = (sy * imgW + sx) * 4;
+        const r = imageData[index];
+        const g = imageData[index + 1];
+        const b = imageData[index + 2];
+        const a = imageData[index + 3];
+
+        if (a > 50 && (r + g + b) > 30) {
+          sampledPoints.push({
+            x: centerX + (sx - imgW / 2),
+            y: centerY + (sy - imgH / 2),
+            color: `rgb(${r},${g},${b})`
+          });
+        }
+      }
+    }
+
+    // Shuffle to ensure uniform distribution across the entire image
+    for (let i = sampledPoints.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [sampledPoints[i], sampledPoints[j]] = [sampledPoints[j], sampledPoints[i]];
+    }
+
+    return sampledPoints;
+  };
+
   useImperativeHandle(ref, () => ({
     morphTo: (shape, options) => {
       currentShape.current = (shape as any);
       const w = window.innerWidth;
       const h = window.innerHeight;
       const pts = getShapePoints(shape, w, h, options);
-      
+
       const worldColors = ['#50e3c2', '#7edafc', '#bd10e0', '#f8e71c', '#ffffff', '#9abdc4'];
       const defaultColors = ['#d4a574', '#e8d5b7'];
 
       particles.current.forEach((p, i) => {
         const pt = pts[i % pts.length];
         p.setTarget(pt.x, pt.y, pt.z, true);
-        
+
         if (shape === 'world') {
           p.color = worldColors[i % worldColors.length];
         } else {
@@ -175,67 +223,66 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
     setProcessing: (active) => {
       isProcessing.current = active;
     },
-    morphToImage: (url) => {
+    morphToImage: (url, options) => {
       currentShape.current = 'image';
+      lastImageUrl.current = url;
+      lastImageOptions.current = options || {};
+      const animate = options?.animate !== false;
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = url;
       img.onload = () => {
         const w = window.innerWidth;
         const h = window.innerHeight;
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
 
-        const maxSize = Math.max(w, h) * 0.8; 
-        let imgW = img.width;
-        let imgH = img.height;
-        if (imgW > imgH) {
-          imgH = (imgH / imgW) * maxSize;
-          imgW = maxSize;
-        } else {
-          imgW = (imgW / imgH) * maxSize;
-          imgH = maxSize;
-        }
-        canvas.width = imgW;
-        canvas.height = imgH;
-        ctx.drawImage(img, 0, 0, imgW, imgH);
-        
-        const imageData = ctx.getImageData(0, 0, imgW, imgH).data;
-        const sampledPoints: {x: number, y: number, color: string}[] = [];
-        const count = 100000;
-        
-        const step = Math.max(1, Math.floor(Math.sqrt((imgW * imgH) / count)));
-        
-        for (let y = 0; y < imgH; y += step) {
-          for (let x = 0; x < imgW; x += step) {
-            const index = (y * imgW + x) * 4;
-            const r = imageData[index];
-            const g = imageData[index + 1];
-            const b = imageData[index + 2];
-            const a = imageData[index + 3];
-            
-            if (a > 50 && (r + g + b) > 30) {
-              sampledPoints.push({
-                x: x - imgW / 2,
-                y: y - imgH / 2,
-                color: `rgb(${r},${g},${b})`
-              });
-            }
-          }
-        }
-
-        const centerX = w / 2;
-        const centerY = h / 2 - 30;
+        const centerX = options?.centerX ?? w * 0.25;
+        const centerY = options?.centerY ?? h * 0.5;
         morphCenter.current = { x: centerX, y: centerY };
 
-        particles.current.forEach((p, i) => {
-          const pt = sampledPoints[i % sampledPoints.length];
-          if (pt) {
-            p.setTarget(centerX + pt.x, centerY + pt.y, (Math.random() - 0.5) * 80, true);
-            p.color = pt.color;
-          }
-        });
+        const panelW = options?.panelWidth ?? w * 0.4;
+        const panelH = options?.panelHeight ?? h * 0.6;
+
+        const sampledPoints = imageToSampledPoints(img, centerX, centerY, panelW, panelH);
+        if (sampledPoints.length === 0) return;
+
+        if (animate) {
+          // Phase 1: scatter particles outward
+          particles.current.forEach((p) => {
+            const dx = p.x - centerX;
+            const dy = p.y - centerY;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            const scatterDist = 200 + Math.random() * 300;
+            const scatterX = centerX + (dx / dist) * scatterDist + (Math.random() - 0.5) * 100;
+            const scatterY = centerY + (dy / dist) * scatterDist + (Math.random() - 0.5) * 100;
+            const scatterZ = (Math.random() - 0.5) * 400;
+            p.setTarget(scatterX, scatterY, scatterZ, true);
+            p.color = Math.random() > 0.5 ? '#d4a574' : '#e8d5b7';
+          });
+
+          // Phase 2: reassemble to image shape
+          setTimeout(() => {
+            particles.current.forEach((p, i) => {
+              const pt = sampledPoints[i % sampledPoints.length];
+              if (pt) {
+                p.setTarget(pt.x, pt.y, (Math.random() - 0.5) * 40, true);
+                p.color = pt.color;
+                p.ease = 0.03 + Math.random() * 0.04;
+                p.friction = 0.88 + Math.random() * 0.06;
+              }
+            });
+          }, 800);
+        } else {
+          // Smooth morph: particles glide directly to new positions
+          particles.current.forEach((p, i) => {
+            const pt = sampledPoints[i % sampledPoints.length];
+            if (pt) {
+              p.setTarget(pt.x, pt.y, (Math.random() - 0.5) * 40, true);
+              p.color = pt.color;
+              p.ease = 0.06 + Math.random() * 0.04;
+              p.friction = 0.85 + Math.random() * 0.05;
+            }
+          });
+        }
       };
     }
   }));
@@ -348,7 +395,7 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    
+
     const count = 100000;
     if (particles.current.length === 0) {
       particles.current = Array.from({ length: count }, () => new Particle(w, h));
@@ -369,10 +416,9 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
       rotation.y += (targetRotation.y - rotation.y) * 0.05;
 
       ctx.clearRect(0, 0, w, h);
-      
-      // Simple bloom effect: draw a faint large layer first (simulated glow)
+
       ctx.globalCompositeOperation = 'lighter';
-      
+
       const cx = morphCenter.current.x || w / 2;
       const cy = morphCenter.current.y || h / 2;
 
@@ -380,9 +426,9 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
         p.update(w, h, rotation, cx, cy, isProcessing.current);
         p.draw(ctx);
       });
-      
+
       ctx.globalCompositeOperation = 'source-over';
-      
+
       animId = requestAnimationFrame(animate);
     };
 
@@ -390,9 +436,6 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
     animId = requestAnimationFrame(animate);
 
     const handleResize = () => {
-      // Store old dimensions for potential re-centering logic
-      // const oldW = w;
-      // const oldH = h;
       w = window.innerWidth;
       h = window.innerHeight;
       canvas.width = w * window.devicePixelRatio;
@@ -402,18 +445,44 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-      // If we are in a morphed state, we should ideally re-calculate points 
-      // or at least shift them to center them in the new window.
       if (currentShape.current !== 'idle') {
-        const cx = morphCenter.current.x || w / 2;
-        const cy = morphCenter.current.y || h / 2;
-        
-        // Simply re-morphing is the easiest way to ensure alignment
-        const pts = getShapePoints(currentShape.current, w, h, { centerX: cx, centerY: cy });
-        particles.current.forEach((p, i) => {
-          const pt = pts[i % pts.length];
-          p.setTarget(pt.x, pt.y, pt.z, true);
-        });
+        if (currentShape.current === 'image' && lastImageUrl.current) {
+          const opts = lastImageOptions.current;
+          // Recalculate panel position from DOM
+          const leftPanel = document.getElementById('records-left-panel');
+          if (leftPanel) {
+            const rect = leftPanel.getBoundingClientRect();
+            opts.centerX = rect.left + rect.width / 2;
+            opts.centerY = rect.top + rect.height / 2;
+            opts.panelWidth = rect.width * 0.85;
+            opts.panelHeight = rect.height * 0.7;
+          }
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = lastImageUrl.current;
+          img.onload = () => {
+            const centerX = opts.centerX ?? w / 2;
+            const centerY = opts.centerY ?? h / 2;
+            morphCenter.current = { x: centerX, y: centerY };
+            const panelW = opts.panelWidth ?? w * 0.4;
+            const panelH = opts.panelHeight ?? h * 0.6;
+            const resizePoints = imageToSampledPoints(img, centerX, centerY, panelW, panelH);
+            particles.current.forEach((p, i) => {
+              const pt = resizePoints[i % resizePoints.length];
+              if (pt) {
+                p.setTarget(pt.x, pt.y, (Math.random() - 0.5) * 40, true);
+              }
+            });
+          };
+        } else {
+          const cx = morphCenter.current.x || w / 2;
+          const cy = morphCenter.current.y || h / 2;
+          const pts = getShapePoints(currentShape.current, w, h, { centerX: cx, centerY: cy });
+          particles.current.forEach((p, i) => {
+            const pt = pts[i % pts.length];
+            p.setTarget(pt.x, pt.y, pt.z, true);
+          });
+        }
       }
     };
     window.addEventListener('resize', handleResize);
@@ -426,8 +495,8 @@ export const ParticleBackground = forwardRef<ParticleHandle, {}>((_, ref) => {
   }, []);
 
   return (
-    <canvas 
-      ref={canvasRef} 
+    <canvas
+      ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
       style={{ background: 'radial-gradient(circle at center, #0a0a0d 0%, #000 100%)' }}
     />
