@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GitBranch, History, MousePointer2, X, Heart, Sparkles, RotateCcw, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -220,6 +220,7 @@ function catmullRomPath(points: { x: number; y: number }[], tension = 0.5): stri
   return path;
 }
 
+// @ts-expect-error kept for potential future use
 function generateWavePath(
   startY: number,
   endY: number,
@@ -568,7 +569,7 @@ export const WorldlineSection: React.FC<WorldlineSectionProps> = ({ particleRef,
             </svg>
 
             {/* Node elements */}
-            {filteredNodes.map((node, i) => {
+            {filteredNodes.map((node) => {
               const pos = nodePositions[node.id];
               if (!pos) return null;
 
