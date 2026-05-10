@@ -98,7 +98,7 @@ export const DeductionFlow: React.FC<DeductionFlowProps> = ({
     setPhase('planning');
 
     await delay(300);
-    const { node: updatedNode, feedback } = planDeductionPath(node, type);
+    const { node: updatedNode, feedback } = await planDeductionPath(node, type);
 
     for (const msg of feedback) {
       await delay(400);
@@ -116,7 +116,7 @@ export const DeductionFlow: React.FC<DeductionFlowProps> = ({
     setPhase('story');
 
     await delay(300);
-    const { node: updatedNode, feedback } = generateStory(node, type);
+    const { node: updatedNode, feedback } = await generateStory(node, type);
 
     for (const msg of feedback) {
       await delay(400);
@@ -134,7 +134,7 @@ export const DeductionFlow: React.FC<DeductionFlowProps> = ({
     setPhase('manga');
 
     await delay(300);
-    const { node: updatedNode, feedback } = generateManga(node);
+    const { node: updatedNode, feedback } = await generateManga(node);
 
     for (const msg of feedback) {
       await delay(400);

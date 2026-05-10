@@ -107,7 +107,7 @@ ${context.profileSummary}`);
   }
 
   const chat = genAI.chats.create({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.0-flash-lite",
     config: {
       systemInstruction: prompts.join('\n\n'),
       maxOutputTokens: 256,
@@ -147,7 +147,7 @@ ${profileSummary}`);
   }));
 
   const chat = genAI.chats.create({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.0-flash-lite",
     config: {
       systemInstruction: prompts.join('\n\n'),
       maxOutputTokens: 256,
@@ -178,7 +178,7 @@ ${qaPairs.map((qa, i) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`).j
 
   try {
     const response = await genAI.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash-lite",
       contents: prompt,
     });
 
@@ -218,7 +218,7 @@ ${history.map(m => `${m.role}: ${m.content}`).join('\n')}
 
   try {
     const response = await genAI.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash-lite",
       contents: prompt,
     });
     const text = (response.text || '').split(/[，,]/).map(t => t.trim()).filter(t => t.length > 0);
@@ -227,4 +227,189 @@ ${history.map(m => `${m.role}: ${m.content}`).join('\n')}
     console.error('extractTraits failed:', e);
     return [];
   }
+}
+
+/** AI 碎片分析 — 提取时间、类型、标题、描述 */
+export interface FragmentAnalysis {
+  time: string;
+  type: 'key_decision' | 'emotional_peak' | 'relationship' | 'regret_clue' | 'new_discovery';
+  title: string;
+  description: string;
+  emotionTags: string[];
+}
+
+export async function analyzeFragment(text: string): Promise<FragmentAnalysis | null> {
+  const prompt = `分析这段记忆碎片，提取结构化信息。用户说的内容：
+"${text}"
+
+请用JSON格式返回（只返回JSON，不要其他内容）：
+{
+  "time": "时间点（具体年月或时间段，如'2023年春'、'大学时'，如果无法推断则返回'未知时间'）",
+  "type": "类型，从以下选择一个：key_decision（关键决策）、emotional_peak（情感高峰）、relationship（人际关系）、regret_clue（遗憾线索）、new_discovery（新发现）",
+  "title": "标题（8字以内，概括性描述）",
+  "description": "描述（30-50字，具体描述这个碎片的内容）",
+  "emotionTags": ["情感标签1", "情感标签2"]
+}
+
+情感标签从这些中选择：欣慰、遗憾、纠结、释然、期待、焦虑、怀念、不甘、感激、迷茫、坚定、犹豫、温暖、孤独、自由、压力、平静、兴奋`;
+
+  try {
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: prompt,
+    });
+
+    const text = (response.text || '').trim();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const validTypes = ['key_decision', 'emotional_peak', 'relationship', 'regret_clue', 'new_discovery'];
+      return {
+        time: parsed.time || '未知时间',
+        type: validTypes.includes(parsed.type) ? parsed.type : 'new_discovery',
+        title: parsed.title || '记忆碎片',
+        description: parsed.description || text.substring(0, 50),
+        emotionTags: Array.isArray(parsed.emotionTags) ? parsed.emotionTags.slice(0, 3) : [],
+      };
+    }
+    return null;
+  } catch (e) {
+    console.error('analyzeFragment failed:', e);
+    return null;
+  }
+}
+
+/** 信息充分性检测 — 推演前判断用户信息是否足够 */
+export interface SufficiencyCheck {
+  isSufficient: boolean;
+  missingAspects: string[];
+  followUpQuestion: string;
+}
+
+export async function checkInfoSufficiency(
+  userInput: string,
+  profileSummary: string,
+  type: 'history' | 'future'
+): Promise<SufficiencyCheck> {
+  const prompt = `判断用户信息是否足够进行一次有意义的推演。
+
+用户想推演的内容："${userInput}"
+推演类型：${type === 'history' ? '历史推演（如果当初...）' : '未来推演（如果我...）'}
+用户画像摘要：${profileSummary || '画像尚未建立'}
+
+请用JSON格式返回（只返回JSON，不要其他内容）：
+{
+  "isSufficient": true/false,
+  "missingAspects": ["缺少的方面1", "缺少的方面2"],
+  "followUpQuestion": "一个自然的追问，帮助补充缺失信息（30字以内）"
+}
+
+判断标准：
+- 信息充分：事件具体、时间点清楚、用户性格/价值观/决策偏好有2个以上关键词
+- 信息不足：事件太模糊、时间点不确定、用户画像几乎为空
+- 对于历史推演，需要知道：当初的决策背景、为什么选了A而不是B、当时的处境
+- 对于未来推演，需要知道：面临的选择选项、个人的核心考量、风险偏好`;
+
+  try {
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: prompt,
+    });
+
+    const text = (response.text || '').trim();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        isSufficient: !!parsed.isSufficient,
+        missingAspects: Array.isArray(parsed.missingAspects) ? parsed.missingAspects : [],
+        followUpQuestion: parsed.followUpQuestion || '能多说说当时的情况吗？',
+      };
+    }
+
+    return { isSufficient: false, missingAspects: ['用户信息不足'], followUpQuestion: '能多说说吗？' };
+  } catch (e) {
+    console.error('checkInfoSufficiency failed:', e);
+    return { isSufficient: false, missingAspects: [], followUpQuestion: '能多说说吗？' };
+  }
+}
+
+/** AI 追问 — 信息不足时生成自然的补充对话 */
+export async function generateFollowUp(
+  userInput: string,
+  missingAspects: string[],
+  profileSummary: string,
+  chatHistory: { role: string; content: string }[] = []
+): Promise<string> {
+  const historyStr = chatHistory.slice(-6).map(m => `${m.role === 'user' ? '用户' : '镜中'}: ${m.content}`).join('\n');
+
+  const prompt = `你在和一个用户聊天，用户想做一次推演，但提供的信息还不够。你需要自然地追问，补全缺失的信息。
+
+用户想推演的内容："${userInput}"
+缺少的方面：${missingAspects.join('、')}
+用户画像：${profileSummary || '画像尚未建立'}
+${historyStr ? `最近的对话：\n${historyStr}` : ''}
+
+追问要求：
+- 像朋友聊天一样自然地追问，不要像在做访谈
+- 只问一个最重要的补充问题，不要一次问多个
+- 从缺少的方面中选择最关键的一个来问
+- 语气轻松，不要太正式
+- 30字以内`;
+
+  try {
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: prompt,
+    });
+    return (response.text || '能再多说说吗？').replace(/^["']|["']$/g, '').trim();
+  } catch (e) {
+    console.error('generateFollowUp failed:', e);
+    return '能多说说当时的情况吗？';
+  }
+}
+
+/** 对话开场白 — 根据画像和历史生成个性化的问候 */
+export async function getConversationStarter(
+  profileSummary: string,
+  reentryContext?: string
+): Promise<string> {
+  const prompt = `生成一句对话开场白。
+
+用户画像：${profileSummary || '画像尚未建立'}
+${reentryContext ? `上次聊到：${reentryContext}` : '这是第一次对话'}
+
+要求：
+- 像朋友一样自然地开场，不要像客服
+- 如果有上次对话的上下文，自然地接上
+- 如果是第一次对话，简单打个招呼就好
+- 15-25字
+- 不要用"你好"、"欢迎回来"这种官方语
+- 可以用"嘿"、"嗨"、"说起来"这种语气词`;
+
+  try {
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: prompt,
+    });
+    return (response.text || '嘿，有什么想聊的吗？').replace(/^["']|["']$/g, '').trim();
+  } catch (e) {
+    console.error('getConversationStarter failed:', e);
+    return '嘿，有什么想聊的吗？';
+  }
+}
+
+/** 标准化聊天历史 — 把不同格式的聊天记录统一成 Gemini API 格式 */
+export function normalizeChatHistory(
+  messages: { role: string; content: string; parts?: { text: string }[] }[]
+): { role: 'user' | 'model'; parts: { text: string }[] }[] {
+  return messages
+    .filter(m => {
+      const text = m.parts?.[0]?.text || m.content || '';
+      return text.trim().length > 0;
+    })
+    .map(m => ({
+      role: (m.role === 'user' ? 'user' : 'model') as 'user' | 'model',
+      parts: [{ text: m.parts?.[0]?.text || m.content || '' }],
+    }));
 }

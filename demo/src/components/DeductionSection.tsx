@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, MapPin, ArrowLeft, Sparkles, GitBranch, AlertCircle, Link2, Layers } from 'lucide-react';
+import { Clock, MapPin, ArrowLeft, Sparkles, GitBranch, AlertCircle, Link2, Layers, Send, Loader2 } from 'lucide-react';
 import { DeductionFlow } from './DeductionFlow';
 import { cn } from '../lib/utils';
 import { findNodesByTimePoint, getStoredNodes, StoredNode } from '../services/nodeStorageService';
+import { checkInfoSufficiency } from '../services/geminiService';
+import { getProfileSummary } from '../services/profileService';
 import { ParticleHandle } from './ParticleBackground';
 
 type ViewPhase =
@@ -11,9 +13,15 @@ type ViewPhase =
   | 'history_input'     // 历史推演：输入时间点和事项
   | 'history_relation'  // 历史推演：节点关系选择
   | 'future_input'      // 未来决策：输入决策内容
+  | 'info_dialogue'     // 信息补充对话（AI 检测信息不足时进入）
   | 'dialogue';         // 推演对话
 
 type RelationType = 'child' | 'pre_branch' | 'parallel' | 'new';
+
+interface InfoMessage {
+  role: 'user' | 'ai';
+  content: string;
+}
 
 interface DeductionSectionProps {
   onChapterChange?: (chapter: string, savedNode?: StoredNode) => void;
@@ -25,7 +33,9 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
   const [input, setInput] = useState('');
   const [timePoint, setTimePoint] = useState('');
   const [event, setEvent] = useState('');
+  const [futureTimePoint, setFutureTimePoint] = useState('');
   const [deductionType, setDeductionType] = useState<'history' | 'future'>('history');
+  const [isCheckingInfo, setIsCheckingInfo] = useState(false);
 
   // 节点关系相关状态
   const [existingNodes, setExistingNodes] = useState<StoredNode[]>([]);
@@ -33,11 +43,91 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
   const [relationType, setRelationType] = useState<RelationType>('new');
   const [allNodes, setAllNodes] = useState<StoredNode[]>([]);
 
+  // 信息补充对话状态
+  const [infoMessages, setInfoMessages] = useState<InfoMessage[]>([]);
+  const [infoInput, setInfoInput] = useState('');
+  const [infoContext, setInfoContext] = useState('');
+  const infoScrollRef = useRef<HTMLDivElement>(null);
+
   // 加载已有节点
   useEffect(() => {
     const nodes = getStoredNodes();
     setAllNodes(nodes);
   }, []);
+
+  useEffect(() => {
+    if (infoScrollRef.current) {
+      infoScrollRef.current.scrollTop = infoScrollRef.current.scrollHeight;
+    }
+  }, [infoMessages, isCheckingInfo]);
+
+  // 信息充分性检测 + 追问对话
+  const handleCheckAndProceed = async (tp: string, ev: string, type: 'history' | 'future') => {
+    const summary = getProfileSummary();
+    setIsCheckingInfo(true);
+
+    try {
+      const result = await checkInfoSufficiency(
+        type === 'history' ? `如果当初${ev}` : ev,
+        summary || '',
+        type
+      );
+
+      setIsCheckingInfo(false);
+
+      if (result.isSufficient) {
+        setView('dialogue');
+      } else {
+        // 信息不足 — 进入补充对话
+        const context = type === 'history'
+          ? `时间：${tp}，事件：${ev}`
+          : `时间：${tp || '当下'}，决策：${ev}`;
+        setInfoContext(context);
+        setInfoMessages([{ role: 'ai', content: result.followUpQuestion || '能再多说一点吗？比如当时的具体情况是什么样的？' }]);
+        setView('info_dialogue');
+      }
+    } catch {
+      setIsCheckingInfo(false);
+      // 检测失败，直接进入推演
+      setView('dialogue');
+    }
+  };
+
+  // 信息补充对话发送
+  const handleInfoChatSubmit = async () => {
+    if (!infoInput.trim() || isCheckingInfo) return;
+    const text = infoInput.trim();
+    setInfoMessages(prev => [...prev, { role: 'user', content: text }]);
+    setInfoInput('');
+    setIsCheckingInfo(true);
+
+    try {
+      const result = await checkInfoSufficiency(
+        `${infoContext}。补充信息：${infoMessages.filter(m => m.role === 'user').map(m => m.content).join('；')}${text}`,
+        getProfileSummary() || '',
+        deductionType
+      );
+
+      setIsCheckingInfo(false);
+
+      if (result.isSufficient) {
+        // 信息充足了，把补充的信息合并到事件描述
+        const extraInfo = infoMessages.filter(m => m.role === 'user').map(m => m.content).join('；');
+        if (deductionType === 'history') {
+          setEvent(prev => prev + '\n' + extraInfo);
+        } else {
+          setInput(prev => prev + '\n' + extraInfo);
+        }
+        setView('dialogue');
+      } else {
+        setInfoMessages(prev => [...prev, { role: 'ai', content: result.followUpQuestion || '还有别的想补充的吗？' }]);
+      }
+    } catch {
+      setIsCheckingInfo(false);
+      // 出错时直接进入推演
+      setView('dialogue');
+    }
+  };
 
   // 选择推演类型
   const handleSelectType = (type: 'history' | 'future') => {
@@ -53,27 +143,26 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
   const handleHistoryInputNext = () => {
     if (!timePoint.trim() || !event.trim()) return;
 
-    // 检查是否有相关节点
     const relatedNodes = findNodesByTimePoint(timePoint);
     if (relatedNodes.length > 0) {
       setExistingNodes(relatedNodes);
       setView('history_relation');
     } else {
-      // 没有相关节点，直接进入推演
-      setView('dialogue');
+      // 没有相关节点，检测信息充分性
+      handleCheckAndProceed(timePoint, event, 'history');
     }
   };
 
   // 选择节点关系后进入推演
   const handleRelationSelect = () => {
-    // 直接进入推演，关系信息通过 relationType 状态传递
-    setView('dialogue');
+    handleCheckAndProceed(timePoint, event, 'history');
   };
 
   // 未来决策：直接进入推演
   const handleFutureInputNext = () => {
     if (!input.trim()) return;
-    setView('dialogue');
+    const tp = futureTimePoint.trim() || '未指定具体时间';
+    handleCheckAndProceed(tp, input, 'future');
   };
 
   // 返回上一级
@@ -85,19 +174,28 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
         setTimePoint('');
         setEvent('');
         setInput('');
+        setFutureTimePoint('');
         break;
       case 'history_relation':
         setView('history_input');
         setSelectedExistingNode(null);
         setRelationType('new');
         break;
+      case 'info_dialogue':
+        setView('landing');
+        setInfoMessages([]);
+        setInfoInput('');
+        break;
       case 'dialogue':
         setView('landing');
         setInput('');
         setTimePoint('');
         setEvent('');
+        setFutureTimePoint('');
         setExistingNodes([]);
         setSelectedExistingNode(null);
+        setInfoMessages([]);
+        setInfoInput('');
         break;
       default:
         setView('landing');
@@ -143,7 +241,6 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
               </motion.p>
             </div>
 
-            {/* 选择卡片 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -189,7 +286,6 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
               </button>
             </motion.div>
 
-            {/* 最近推演 */}
             {allNodes.length > 0 && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -209,7 +305,7 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
                         setTimePoint(node.scenario.timePoint);
                         setEvent(node.scenario.title);
                         setDeductionType('history');
-                        setView('dialogue');
+                        handleCheckAndProceed(node.scenario.timePoint, node.scenario.title, 'history');
                       }}
                       className="shrink-0 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/10 hover:border-white/30 transition-colors text-left group"
                     >
@@ -232,7 +328,6 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
             exit={{ opacity: 0, x: -20 }}
             className="absolute inset-0 flex flex-col"
           >
-            {/* 可滚动内容区域 */}
             <div className="flex-1 overflow-y-auto no-scrollbar px-4 md:px-8 py-6">
               <div className="max-w-xl mx-auto">
                 <button
@@ -250,7 +345,6 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
                 </div>
 
                 <div className="space-y-4">
-                  {/* 时间点输入 */}
                   <div>
                     <label className="text-[10px] text-white/50 mb-1.5 block">时间点</label>
                     <input
@@ -261,8 +355,6 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
                       onChange={(e) => setTimePoint(e.target.value)}
                     />
                   </div>
-
-                  {/* 事件描述 */}
                   <div>
                     <label className="text-[10px] text-white/50 mb-1.5 block">发生了什么？</label>
                     <textarea
@@ -272,8 +364,6 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
                       onChange={(e) => setEvent(e.target.value)}
                     />
                   </div>
-
-                  {/* 快捷选项 */}
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {['辞职', '换工作', '搬家', '创业'].map((hint) => (
                       <button
@@ -289,14 +379,14 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
               </div>
             </div>
 
-            {/* 固定底部按钮 */}
             <div className="shrink-0 px-4 md:px-8 py-4 border-t border-white/5 bg-gradient-to-t from-mirror-deep via-mirror-deep/98 to-transparent">
               <div className="max-w-xl mx-auto flex justify-center">
                 <button
                   onClick={handleHistoryInputNext}
-                  disabled={!timePoint.trim() || !event.trim()}
-                  className="px-8 py-3 bg-mirror-gold text-mirror-deep text-sm font-medium rounded-full hover:bg-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={!timePoint.trim() || !event.trim() || isCheckingInfo}
+                  className="px-8 py-3 bg-mirror-gold text-mirror-deep text-sm font-medium rounded-full hover:bg-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
                 >
+                  {isCheckingInfo && <Loader2 size={14} className="animate-spin" />}
                   继续
                 </button>
               </div>
@@ -313,7 +403,6 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
             exit={{ opacity: 0, x: -20 }}
             className="absolute inset-0 flex flex-col"
           >
-            {/* 可滚动内容区域 */}
             <div className="flex-1 overflow-y-auto no-scrollbar px-4 md:px-8 py-6">
               <div className="max-w-xl mx-auto">
                 <button
@@ -334,7 +423,6 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
                   </p>
                 </div>
 
-                {/* 已有节点列表 */}
                 <div className="mb-4 space-y-2">
                   {existingNodes.map((node) => (
                     <button
@@ -353,7 +441,6 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
                   ))}
                 </div>
 
-                {/* 关系类型选择 */}
                 <div className="space-y-2 pb-4">
                   <div className="text-[10px] text-white/50 mb-2">选择节点关系：</div>
 
@@ -428,14 +515,14 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
               </div>
             </div>
 
-            {/* 固定底部按钮 */}
             <div className="shrink-0 px-4 md:px-8 py-4 border-t border-white/5 bg-gradient-to-t from-mirror-deep via-mirror-deep/98 to-transparent">
               <div className="max-w-xl mx-auto flex justify-center">
                 <button
                   onClick={handleRelationSelect}
-                  disabled={!relationType || (relationType !== 'new' && !selectedExistingNode)}
-                  className="px-8 py-3 bg-mirror-gold text-mirror-deep text-sm font-medium rounded-full hover:bg-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={!relationType || (relationType !== 'new' && !selectedExistingNode) || isCheckingInfo}
+                  className="px-8 py-3 bg-mirror-gold text-mirror-deep text-sm font-medium rounded-full hover:bg-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
                 >
+                  {isCheckingInfo && <Loader2 size={14} className="animate-spin" />}
                   开始推演
                 </button>
               </div>
@@ -452,7 +539,6 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
             exit={{ opacity: 0, x: -20 }}
             className="absolute inset-0 flex flex-col"
           >
-            {/* 可滚动内容区域 */}
             <div className="flex-1 overflow-y-auto no-scrollbar px-4 md:px-8 py-6">
               <div className="max-w-xl mx-auto">
                 <button
@@ -472,12 +558,20 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
                 <div className="space-y-3">
                   <textarea
                     placeholder="如：我在考虑要不要接受一个新的工作机会，薪资更高但需要去外地..."
-                    className="w-full h-32 bg-white/[0.03] border border-white/10 p-3 rounded-xl text-sm text-white outline-none focus:border-mirror-accent/30 resize-none transition-colors placeholder:text-white/20"
+                    className="w-full h-28 bg-white/[0.03] border border-white/10 p-3 rounded-xl text-sm text-white outline-none focus:border-mirror-accent/30 resize-none transition-colors placeholder:text-white/20"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                   />
-
-                  {/* 快捷场景 */}
+                  <div>
+                    <label className="text-[10px] text-white/50 mb-1.5 block">这个决定大概在什么时候？</label>
+                    <input
+                      type="text"
+                      placeholder="如：十一、年底、明年三月、下个月..."
+                      className="w-full bg-white/[0.03] border border-white/10 p-3 rounded-xl text-sm text-white outline-none focus:border-mirror-accent/30 transition-colors placeholder:text-white/20"
+                      value={futureTimePoint}
+                      onChange={(e) => setFutureTimePoint(e.target.value)}
+                    />
+                  </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {['跳槽', '创业', '搬家', '进修'].map((hint) => (
                       <button
@@ -493,15 +587,96 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
               </div>
             </div>
 
-            {/* 固定底部按钮 */}
             <div className="shrink-0 px-4 md:px-8 py-4 border-t border-white/5 bg-gradient-to-t from-mirror-deep via-mirror-deep/98 to-transparent">
               <div className="max-w-xl mx-auto flex justify-center">
                 <button
                   onClick={handleFutureInputNext}
-                  disabled={!input.trim()}
-                  className="px-8 py-3 bg-mirror-accent text-mirror-deep text-sm font-medium rounded-full hover:bg-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={!input.trim() || isCheckingInfo}
+                  className="px-8 py-3 bg-mirror-accent text-mirror-deep text-sm font-medium rounded-full hover:bg-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
                 >
+                  {isCheckingInfo && <Loader2 size={14} className="animate-spin" />}
                   开始分析
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ===== 信息补充对话 ===== */}
+        {view === 'info_dialogue' && (
+          <motion.div
+            key="info_dialogue"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex flex-col"
+          >
+            <div className="shrink-0 px-6 py-4 border-b border-white/5 flex items-center gap-3">
+              <button onClick={handleBack} className="text-white/40 hover:text-white transition-colors">
+                <ArrowLeft size={16} />
+              </button>
+              <div>
+                <div className="text-white/80 text-sm">补充一些细节</div>
+                <div className="text-white/30 text-[10px]">让推演更贴近你的真实情况</div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar px-6 py-4">
+              <div className="max-w-xl mx-auto space-y-4">
+                <AnimatePresence>
+                  {infoMessages.map((msg, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}
+                    >
+                      <div className={cn(
+                        "max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed",
+                        msg.role === 'user'
+                          ? "bg-mirror-gold text-mirror-deep rounded-br-md"
+                          : "bg-white/[0.03] border border-white/10 text-white/80 rounded-bl-md"
+                      )}>
+                        {msg.content}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {isCheckingInfo && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex justify-start"
+                  >
+                    <div className="bg-white/[0.03] border border-white/10 px-4 py-3 rounded-2xl rounded-bl-md">
+                      <div className="flex gap-1">
+                        <span className="w-2 h-2 bg-white/20 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2 h-2 bg-white/20 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2 h-2 bg-white/20 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+                <div ref={infoScrollRef} />
+              </div>
+            </div>
+
+            <div className="shrink-0 px-6 py-4 border-t border-white/5">
+              <div className="max-w-xl mx-auto flex gap-3">
+                <input
+                  type="text"
+                  value={infoInput}
+                  onChange={(e) => setInfoInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleInfoChatSubmit()}
+                  placeholder="说说你的情况..."
+                  className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-mirror-gold/30 transition-colors"
+                />
+                <button
+                  onClick={handleInfoChatSubmit}
+                  disabled={!infoInput.trim() || isCheckingInfo}
+                  className="px-4 py-3 bg-mirror-gold text-mirror-deep rounded-xl font-medium hover:bg-white transition-colors disabled:opacity-30 flex items-center gap-2"
+                >
+                  {isCheckingInfo ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 </button>
               </div>
             </div>
@@ -517,21 +692,22 @@ export function DeductionSection({ onChapterChange, particleRef }: DeductionSect
             className="h-full w-full"
           >
             <DeductionFlow
-              timePoint={deductionType === 'history' ? timePoint : '当下'}
+              timePoint={deductionType === 'history' ? timePoint : futureTimePoint || '当下'}
               event={deductionType === 'history' ? event : input}
               type={deductionType}
               relationType={relationType === 'new' ? undefined : relationType}
               existingNodeTitle={selectedExistingNode?.summary}
               onBack={handleBack}
               onComplete={() => {
-                // 保存节点后返回
                 setView('landing');
                 setInput('');
                 setTimePoint('');
                 setEvent('');
+                setFutureTimePoint('');
                 setExistingNodes([]);
                 setSelectedExistingNode(null);
-                // 刷新节点列表
+                setInfoMessages([]);
+                setInfoInput('');
                 setAllNodes(getStoredNodes());
               }}
               onChapterChange={onChapterChange}
