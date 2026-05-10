@@ -576,43 +576,8 @@ export const WorldlineSection: React.FC<WorldlineSectionProps> = ({ particleRef,
               />
             ))}
 
-            {/* Connection lines between nodes */}
-            <svg className="absolute inset-0 h-full w-full pointer-events-none" style={{ zIndex: 1 }}>
-              {filteredNodes.map((node, i) => {
-                if (i === 0) return null;
-                const prevPos = nodePositions[filteredNodes[i - 1].id];
-                const currPos = nodePositions[node.id];
-                if (!prevPos || !currPos) return null;
-
-                const style = getConnectionStyle(node.type, node.keyMatter);
-                const x1 = prevPos.x + 30;
-                const y1 = 50 + prevPos.y;
-                const x2 = currPos.x - 30;
-                const y2 = 50 + currPos.y;
-
-                // Use bezier curves for main connections, wavy for parallel
-                const d = node.type === 'parallel'
-                  ? makeWavyPath(x1, y1, x2, y2)
-                  : node.type === 'feedback'
-                    ? makeBezierPath(x1, y1, x2, y2)
-                    : makeBezierPath(x1, y1, x2, y2);
-
-                return (
-                  <path
-                    key={`line-${node.id}`}
-                    d={d}
-                    fill="none"
-                    stroke={style.stroke}
-                    strokeWidth={style.strokeWidth}
-                    strokeDasharray={style.strokeDasharray === 'none' ? undefined : style.strokeDasharray}
-                    opacity={style.opacity}
-                  />
-                );
-              })}
-            </svg>
-
-            {/* Node elements */}
-            {filteredNodes.map((node) => {
+            {/* Node elements with per-node connection lines */}
+            {filteredNodes.map((node, idx) => {
               const pos = nodePositions[node.id];
               if (!pos) return null;
 
@@ -627,6 +592,21 @@ export const WorldlineSection: React.FC<WorldlineSectionProps> = ({ particleRef,
                 node.type === 'deduction' ? '#B8A5D0' :
                 node.type === 'parallel' ? '#6B8CAE' :
                 node.type === 'ghost' ? '#A8A8A8' : '#D4A574';
+
+              // Find parent node for connection line
+              const parentId = node.parentId || node.feedbackTargetId;
+              const parentNode = parentId ? filteredNodes.find(n => n.id === parentId) : (idx > 0 ? filteredNodes[idx - 1] : null);
+              const parentPos = parentNode ? nodePositions[parentNode.id] : null;
+
+              // Calculate relative connection from parent to this node
+              const relX = parentPos ? parentPos.x - pos.x : 0;
+              const relY = parentPos ? parentPos.y - pos.y : 0;
+              const connStyle = parentPos ? getConnectionStyle(node.type, node.keyMatter) : null;
+              const connPath = parentPos ? (node.type === 'parallel' ? makeWavyPath(relX, relY, 0, 0) : makeBezierPath(relX, relY, 0, 0)) : null;
+              const svgLeft = parentPos ? Math.min(relX, 0) - 10 : 0;
+              const svgTop = parentPos ? Math.min(relY, 0) - 10 : 0;
+              const svgW = parentPos ? Math.abs(relX) + 20 : 0;
+              const svgH = parentPos ? Math.abs(relY) + 20 : 0;
 
               return (
                 <motion.div
@@ -645,46 +625,90 @@ export const WorldlineSection: React.FC<WorldlineSectionProps> = ({ particleRef,
                   }}
                   className="flex-shrink-0 group"
                 >
+                  {/* Per-node connection line from parent */}
+                  {connPath && (
+                    <svg
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${svgLeft}px`,
+                        top: `${svgTop}px`,
+                        width: `${svgW}px`,
+                        height: `${svgH}px`,
+                        zIndex: -1,
+                        transform: 'translate(-50%, -50%)',
+                      }}
+                    >
+                      <path
+                        d={connPath}
+                        fill="none"
+                        stroke={connStyle!.stroke}
+                        strokeWidth={connStyle!.strokeWidth}
+                        strokeDasharray={connStyle!.strokeDasharray === 'none' ? undefined : connStyle!.strokeDasharray}
+                        opacity={connStyle!.opacity}
+                      />
+                    </svg>
+                  )}
+
+                  <div style={{ transform: 'translate(-50%, -50%)' }}>
+                    <motion.div
+                      animate={{ y: [0, -5, -1, 3, 0], x: [0, 2, -1, -2, 0] }}
+                      transition={{ duration: 5 + idx % 3, delay: idx % 5 * 0.5, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      {/* Pulsing rings for highlighted nodes */}
+                      {isHighlighted && [0, 1, 2, 3].map((ring) => (
+                        <motion.div
+                          key={ring}
+                          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+                          style={{ width: 56, height: 56, border: `2px solid ${nodeColor}40` }}
+                          animate={{ scale: [1, 2.2 + ring * 0.5, 3.5 + ring * 0.5], opacity: [0.5, 0.15, 0] }}
+                          transition={{ duration: 4.5, delay: ring * 1 + idx % 5 * 0.3, repeat: Infinity, ease: "easeOut" }}
+                        />
+                      ))}
+
+                      <motion.div
+                        animate={{ scale: [1, 1.08, 1] }}
+                        transition={{ duration: 3.5 + idx % 3 * 0.5, delay: idx % 4 * 0.4, repeat: Infinity, ease: "easeInOut" }}
+                        className="flex flex-col items-center gap-1"
+                      >
+                        {/* Badge row */}
+                        <div className="flex items-center gap-1">
+                          <KeyMatterBadge nodeType={node.type} keyMatter={node.keyMatter} />
+                          {node.hasRegret && <RegretBadge status={node.regretStatus} />}
+                        </div>
+
+                        {/* Node shape */}
+                        <div className={cn(isHighlighted && "scale-110")}>
+                          <NodeShape
+                            type={node.type}
+                            color={nodeColor}
+                            size={56}
+                            opacity={proximity > 0.3 ? 1 : 0.6}
+                            hasRegret={node.hasRegret}
+                            isHighlighted={isHighlighted}
+                          />
+                        </div>
+
+                        {/* Year/month label */}
+                        <span className="text-[10px] tracking-[0.12em] font-mono whitespace-nowrap backdrop-blur-sm bg-black/30 rounded-md px-2 py-0.5" style={{ color: nodeColor }}>
+                          {node.year}{node.month ? ` · ${node.month}` : ''}
+                        </span>
+
+                        {/* Title */}
+                        <span className={cn(
+                          "text-[13px] font-serif leading-tight text-center whitespace-nowrap transition-colors max-w-[120px] truncate backdrop-blur-sm bg-black/30 rounded-md px-2 py-0.5",
+                          node.type === 'ghost' ? "text-white/50 italic" : "text-white/70 group-hover:text-white"
+                        )}>
+                          {node.title}
+                        </span>
+                      </motion.div>
+                    </motion.div>
+                  </div>
+
                   <button
                     onClick={() => setSelectedNode(node)}
-                    className="relative flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-                  >
-                    {/* Node SVG */}
-                    <div className={cn(
-                      isHighlighted && "scale-110"
-                    )}>
-                      <NodeShape
-                        type={node.type}
-                        color={nodeColor}
-                        size={64}
-                        opacity={opacity}
-                        hasRegret={node.hasRegret}
-                        isHighlighted={isHighlighted}
-                      />
-                    </div>
-
-                    {/* Badge row */}
-                    <div className="mt-1 flex items-center gap-1">
-                      <KeyMatterBadge nodeType={node.type} keyMatter={node.keyMatter} />
-                      {node.hasRegret && <RegretBadge status={node.regretStatus} />}
-                    </div>
-
-                    {/* Labels */}
-                    <div
-                      className={cn(
-                        "absolute left-1/2 -translate-x-1/2 w-40 text-center pointer-events-none transition-all duration-500",
-                        pos.y > 0 ? "-top-16" : "top-16"
-                      )}
-                      style={{ scale: dynamicScale > 1.5 ? 1 / (dynamicScale / 1.5) : 1 }}
-                    >
-                      <span className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-1 block font-mono">
-                        {node.year} · {node.month}
-                      </span>
-                      <h3 className="text-xs md:text-sm text-white/60 font-serif group-hover:text-white transition-colors leading-tight">
-                        {node.title}
-                      </h3>
-                    </div>
-                  </button>
+                    className="absolute inset-0 cursor-pointer"
+                    style={{ transform: 'translate(-50%, -50%)' }}
+                  />
                 </motion.div>
               );
             })}
