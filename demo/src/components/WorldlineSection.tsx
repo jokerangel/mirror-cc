@@ -251,14 +251,46 @@ function generateWavePath(
 function getConnectionStyle(type: string, keyMatter?: string) {
   switch (type) {
     case 'deduction':
-      return { stroke: 'rgba(184,165,208,0.5)', strokeWidth: 2, strokeDasharray: 'none' };
+      return { stroke: 'rgba(184,165,208,0.5)', strokeWidth: 2, strokeDasharray: 'none', opacity: 1 };
     case 'parallel':
-      return { stroke: 'rgba(107,140,174,0.45)', strokeWidth: 2, strokeDasharray: '8 3 2 3' };
+      return { stroke: 'rgba(107,140,174,0.45)', strokeWidth: 2, strokeDasharray: '8 3 2 3', opacity: 1 };
     case 'feedback':
-      return { stroke: `${keyMatter ? keyMatterMap[keyMatter]?.color || '#D4A574' : '#D4A574'}88`, strokeWidth: 1.5, strokeDasharray: '6 4' };
+      return { stroke: `${keyMatter ? keyMatterMap[keyMatter]?.color || '#D4A574' : '#D4A574'}88`, strokeWidth: 1.5, strokeDasharray: 'none', opacity: 0.7 };
     default:
-      return { stroke: 'rgba(255,255,255,0.08)', strokeWidth: 1, strokeDasharray: 'none' };
+      return { stroke: 'rgba(184,165,208,0.5)', strokeWidth: 2, strokeDasharray: 'none', opacity: 1 };
   }
+}
+
+/** Generate a cubic bezier path between two points */
+function makeBezierPath(x1: number, y1: number, x2: number, y2: number): string {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return '';
+  const cx1 = x1 + dx * 0.35;
+  const cy1 = y1 + dy * 0.15;
+  const cx2 = x2 - dx * 0.25;
+  const cy2 = y2 - dy * 0.1;
+  return `M ${x1},${y1} C ${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`;
+}
+
+/** Generate a wavy dashed path between two points */
+function makeWavyPath(x1: number, y1: number, x2: number, y2: number, amplitude = 6, wavelength = 30): string {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 1) return '';
+  const segments = Math.max(2, Math.floor(dist / (wavelength / 2)));
+  let path = `M ${x1},${y1}`;
+  const nx = -dy / dist;
+  const ny = dx / dist;
+  for (let i = 1; i <= segments; i++) {
+    const t = i / segments;
+    const px = x1 + dx * t;
+    const py = y1 + dy * t;
+    const wave = Math.sin(t * Math.PI * 2 * (dist / wavelength)) * amplitude;
+    path += ` L ${px + nx * wave},${py + ny * wave}`;
+  }
+  return path;
 }
 
 // SVG Node Shape Component
@@ -553,16 +585,27 @@ export const WorldlineSection: React.FC<WorldlineSectionProps> = ({ particleRef,
                 if (!prevPos || !currPos) return null;
 
                 const style = getConnectionStyle(node.type, node.keyMatter);
+                const x1 = prevPos.x + 30;
+                const y1 = 50 + prevPos.y;
+                const x2 = currPos.x - 30;
+                const y2 = 50 + currPos.y;
+
+                // Use bezier curves for main connections, wavy for parallel
+                const d = node.type === 'parallel'
+                  ? makeWavyPath(x1, y1, x2, y2)
+                  : node.type === 'feedback'
+                    ? makeBezierPath(x1, y1, x2, y2)
+                    : makeBezierPath(x1, y1, x2, y2);
+
                 return (
-                  <line
+                  <path
                     key={`line-${node.id}`}
-                    x1={prevPos.x + 30}
-                    y1={50 + prevPos.y}
-                    x2={currPos.x - 30}
-                    y2={50 + currPos.y}
+                    d={d}
+                    fill="none"
                     stroke={style.stroke}
                     strokeWidth={style.strokeWidth}
-                    strokeDasharray={style.strokeDasharray}
+                    strokeDasharray={style.strokeDasharray === 'none' ? undefined : style.strokeDasharray}
+                    opacity={style.opacity}
                   />
                 );
               })}
