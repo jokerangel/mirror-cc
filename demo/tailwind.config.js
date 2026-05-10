@@ -34,7 +34,7 @@ export default {
         'node-decision': '#D4A574',
         'node-turning': '#B8A5D0',
         'node-event': '#6B8CAE',
-        'node-almost': '#7A7A7A',
+        'node-almost': '#A8A8A8',
         'node-regret': '#AE8B8B',
       },
       fontFamily: {

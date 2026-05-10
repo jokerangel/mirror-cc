@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
+const genAI = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyBFf8myhi95YrBH26hgrfDZqEVwFxGSZr8" });
 
 export const MIRROR_PROMPT = `你现在是“镜中 (Mirror)”的人性引导者。
 你的目标是通过苏格拉底式的对话，帮助用户看见他们“看不见的自己”。
