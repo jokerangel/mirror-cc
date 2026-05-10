@@ -1,1 +1,5 @@
 .vercel/
+*.zip
+启动.bat
+启动 Mac.command
+启动说明.txt
