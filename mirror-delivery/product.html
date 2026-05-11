@@ -110,13 +110,9 @@
       display: inline-flex; align-items: center; gap: 10px;
       color: var(--gold); font-size: 12px; font-weight: 700; letter-spacing: 2.5px;
       text-transform: uppercase; margin-bottom: 14px;
-      padding: 5px 14px 5px 0; border-right: none;
+      padding: 5px 14px 5px 14px; border-right: none; border-left: 3px solid var(--gold);
       background: linear-gradient(90deg, var(--gold-dim) 0%, transparent 100%);
-      border-radius: 0 6px 6px 0; position: relative;
-    }
-    .section-label::before {
-      content: ''; width: 3px; height: 100%; min-height: 18px;
-      background: var(--gold); border-radius: 2px; position: absolute; left: 0; top: 0;
+      border-radius: 0 6px 6px 0;
     }
     .section-label::after {
       content: ''; width: 40px; height: 1px; background: linear-gradient(90deg, var(--gold), transparent); margin-left: 4px;
@@ -369,7 +365,156 @@
       .reveal { opacity: 1; transform: none; transition: none; }
       .hero-scroll { animation: none; }
       #particle-canvas { display: none; }
+      .act, .pricing-card, .biz-card, .arch-box, .value-table tr, .arch-dim-item,
+      .regret-card, .tech-layer, .pain-item, .arch-visual, .feature-checklist li { opacity: 1; transform: none; }
     }
+
+    /* ===== 内容结构动效 ===== */
+
+    /* Hero 徽章微光呼吸 */
+    .hero-badge { animation: badge-glow 3s ease-in-out infinite; }
+    @keyframes badge-glow {
+      0%, 100% { box-shadow: 0 0 8px rgba(212,165,116,0.15); }
+      50% { box-shadow: 0 0 20px rgba(212,165,116,0.35); }
+    }
+
+    /* 推演四幕渐进入 */
+    .act {
+      opacity: 0; transform: translateX(-24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .deduction-demo.visible .act:nth-child(1) { opacity: 1; transform: none; transition-delay: 0.1s; }
+    .deduction-demo.visible .act:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.3s; }
+    .deduction-demo.visible .act:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.5s; }
+    .deduction-demo.visible .act:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.7s; }
+
+    /* 遗憾管理卡片：左/右滑入 */
+    .regret-card {
+      opacity: 0; transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .regret-card.remediable { transform: translateX(-30px); }
+    .regret-card.irremediable { transform: translateX(30px); }
+    .regret-card.visible { opacity: 1; transform: none; }
+
+    /* 飞轮箭头脉冲 */
+    .flywheel-arrow {
+      display: inline-block;
+      animation: arrow-pulse 2s ease-in-out infinite;
+    }
+    @keyframes arrow-pulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+
+    /* 架构图层级浮入 */
+    .arch-visual {
+      opacity: 0; transform: translateY(40px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    .arch-visual.visible { opacity: 1; transform: none; }
+    .arch-visual.visible .arch-box {
+      animation: arch-float 0.5s ease both;
+    }
+    .arch-visual.visible .arch-box:nth-child(1) { animation-delay: 0.1s; }
+    .arch-visual.visible .arch-box:nth-child(2) { animation-delay: 0.2s; }
+    .arch-visual.visible .arch-box:nth-child(3) { animation-delay: 0.3s; }
+    .arch-visual.visible .arch-box:nth-child(4) { animation-delay: 0.4s; }
+    .arch-visual.visible .arch-box:nth-child(5) { animation-delay: 0.5s; }
+    .arch-visual.visible .arch-visual-body .arch-box { animation-delay: 0s; }
+    @keyframes arch-float {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: none; }
+    }
+    /* 架构内部每行延迟 */
+    .arch-visual.visible .arch-visual-body > *:nth-child(1) { animation: arch-float 0.5s ease 0.1s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(2) { animation: arch-float 0.5s ease 0.2s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(3) { animation: arch-float 0.5s ease 0.3s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(4) { animation: arch-float 0.5s ease 0.35s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(5) { animation: arch-float 0.5s ease 0.4s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(6) { animation: arch-float 0.5s ease 0.45s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(7) { animation: arch-float 0.5s ease 0.5s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(8) { animation: arch-float 0.5s ease 0.55s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(9) { animation: arch-float 0.5s ease 0.6s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(10) { animation: arch-float 0.5s ease 0.65s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(11) { animation: arch-float 0.5s ease 0.7s both; }
+    .arch-visual.visible .arch-visual-body > *:nth-child(12) { animation: arch-float 0.5s ease 0.75s both; }
+    .arch-visual > .arch-visual-header { animation: arch-float 0.5s ease 0.05s both; }
+
+    /* 维度标签渐入 */
+    .arch-dim-item { opacity: 0; transform: scale(0.9); transition: opacity 0.4s ease, transform 0.4s ease; }
+    .arch-visual.visible .arch-dim-item { opacity: 1; transform: none; }
+    .arch-visual.visible .arch-dim-item:nth-child(1) { transition-delay: 0.5s; }
+    .arch-visual.visible .arch-dim-item:nth-child(2) { transition-delay: 0.55s; }
+    .arch-visual.visible .arch-dim-item:nth-child(3) { transition-delay: 0.6s; }
+    .arch-visual.visible .arch-dim-item:nth-child(4) { transition-delay: 0.65s; }
+    .arch-visual.visible .arch-dim-item:nth-child(5) { transition-delay: 0.7s; }
+    .arch-visual.visible .arch-dim-item:nth-child(6) { transition-delay: 0.75s; }
+    .arch-visual.visible .arch-dim-item:nth-child(7) { transition-delay: 0.8s; }
+
+    /* 价值表格行渐入 */
+    .value-table tbody tr {
+      opacity: 0; transform: translateX(-16px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .value-table.visible tbody tr:nth-child(1) { opacity: 1; transform: none; transition-delay: 0.05s; }
+    .value-table.visible tbody tr:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.1s; }
+    .value-table.visible tbody tr:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.15s; }
+    .value-table.visible tbody tr:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.2s; }
+    .value-table.visible tbody tr:nth-child(5) { opacity: 1; transform: none; transition-delay: 0.25s; }
+    .value-table.visible tbody tr:nth-child(6) { opacity: 1; transform: none; transition-delay: 0.3s; }
+
+    /* 定价卡片错落渐入 */
+    .pricing-card, .biz-card {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .pricing-grid.visible .pricing-card:nth-child(1),
+    .biz-grid.visible .biz-card:nth-child(1) { opacity: 1; transform: none; transition-delay: 0s; }
+    .pricing-grid.visible .pricing-card:nth-child(2),
+    .biz-grid.visible .biz-card:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.1s; }
+    .pricing-grid.visible .pricing-card:nth-child(3),
+    .biz-grid.visible .biz-card:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.2s; }
+    .pricing-grid.visible .pricing-card:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.3s; }
+
+    /* 技术层卡片渐入 */
+    .tech-layer {
+      opacity: 0; transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .tech-layers.visible .tech-layer:nth-child(1) { opacity: 1; transform: none; transition-delay: 0s; }
+    .tech-layers.visible .tech-layer:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.15s; }
+    .tech-layers.visible .tech-layer:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.3s; }
+
+    /* 痛点网格渐入 */
+    .pain-item {
+      opacity: 0; transform: translateY(16px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .pain-grid.visible .pain-item:nth-child(1) { opacity: 1; transform: none; transition-delay: 0s; }
+    .pain-grid.visible .pain-item:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.08s; }
+    .pain-grid.visible .pain-item:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.16s; }
+    .pain-grid.visible .pain-item:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.24s; }
+
+    /* 四幕推演卡片输入框闪光 */
+    .deduction-input { position: relative; overflow: hidden; }
+    .deduction-input::after {
+      content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(212,165,116,0.1), transparent);
+      animation: input-shimmer 4s ease-in-out infinite;
+    }
+    @keyframes input-shimmer {
+      0%, 100% { left: -50%; }
+      50% { left: 100%; }
+    }
+
+    /* CTA 按钮呼吸光效 */
+    .hero-cta { position: relative; overflow: hidden; }
+    .hero-cta::after {
+      content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .hero-cta:hover::after { opacity: 1; }
   </style>
 </head>
 <body>
@@ -1083,6 +1228,8 @@
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (prefersReduced) {
     document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+    // Also trigger structure animations
+    document.querySelectorAll('.deduction-demo,.regret-flow,.regret-card,.value-table,.pricing-grid,.biz-grid,.tech-layers,.pain-grid,.arch-visual').forEach(el => el.classList.add('visible'));
     return;
   }
   const observer = new IntersectionObserver((entries) => {
@@ -1093,7 +1240,17 @@
       }
     });
   }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  // Reveal animations
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  // Content structure animations
+  const structureSelectors = [
+    '.deduction-demo', '.regret-flow', '.regret-card',
+    '.value-table', '.pricing-grid', '.biz-grid',
+    '.tech-layers', '.pain-grid', '.arch-visual'
+  ];
+  structureSelectors.forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => observer.observe(el));
+  });
 })();
 </script>
 </body>
