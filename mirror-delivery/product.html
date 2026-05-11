@@ -107,16 +107,42 @@
 
     /* ===== Section标题 ===== */
     .section-label {
-      display: inline-flex; align-items: center; gap: 8px;
-      color: var(--gold); font-size: 13px; font-weight: 600; letter-spacing: 1.5px;
-      text-transform: uppercase; margin-bottom: 16px;
+      display: inline-flex; align-items: center; gap: 10px;
+      color: var(--gold); font-size: 12px; font-weight: 700; letter-spacing: 2.5px;
+      text-transform: uppercase; margin-bottom: 14px;
+      padding: 5px 14px 5px 0; border-right: none;
+      background: linear-gradient(90deg, var(--gold-dim) 0%, transparent 100%);
+      border-radius: 0 6px 6px 0; position: relative;
     }
-    .section-label::before { content: ''; width: 24px; height: 1px; background: var(--gold); }
+    .section-label::before {
+      content: ''; width: 3px; height: 100%; min-height: 18px;
+      background: var(--gold); border-radius: 2px; position: absolute; left: 0; top: 0;
+    }
+    .section-label::after {
+      content: ''; width: 40px; height: 1px; background: linear-gradient(90deg, var(--gold), transparent); margin-left: 4px;
+    }
     .section-title {
       font-family: var(--font-display); font-size: clamp(32px, 5vw, 44px);
       font-weight: 700; line-height: 1.2; margin-bottom: 20px; color: var(--text);
+      padding-left: 16px; border-left: 3px solid var(--gold); position: relative;
     }
+    .section-title::after {
+      content: ''; display: block; width: 60px; height: 3px; margin-top: 14px;
+      background: linear-gradient(90deg, var(--gold), transparent); border-radius: 2px;
+    }
+    .section-title.center { text-align: center; border-left: none; padding-left: 0; }
+    .section-title.center::after { margin-left: auto; margin-right: auto; }
     .section-desc { font-size: 17px; color: var(--text-dim); max-width: 640px; line-height: 1.7; }
+
+    .subsection-title {
+      font-family: var(--font-display); font-size: 24px; font-weight: 700;
+      color: var(--text); margin: 56px 0 24px; padding-left: 14px;
+      border-left: 2px solid var(--purple); position: relative;
+    }
+    .subsection-title::after {
+      content: ''; display: block; width: 40px; height: 2px; margin-top: 10px;
+      background: linear-gradient(90deg, var(--purple), transparent); border-radius: 1px;
+    }
 
     /* ===== 故事线 ===== */
     .story-section { border-top: 1px solid var(--divider); }
@@ -391,7 +417,7 @@
       <div class="pain-item">他需要的不是安慰，也不是鼓励，是<em>看见那条路的模样</em></div>
     </div>
 
-    <h3 class="reveal" style="font-family:var(--font-display);font-size:24px;margin:56px 0 24px;color:var(--text);">镜中帮小林看见了"如果考了公"</h3>
+    <h3 class="subsection-title reveal">镜中帮小林看见了"如果考了公"</h3>
 
     <div class="deduction-demo reveal">
       <div class="deduction-input">
@@ -418,7 +444,7 @@
       </div>
     </div>
 
-    <h3 class="reveal" style="font-family:var(--font-display);font-size:24px;margin:56px 0 24px;color:var(--text);">从推演到行动：遗憾不是终点</h3>
+    <h3 class="subsection-title reveal">从推演到行动：遗憾不是终点</h3>
 
     <p class="section-desc reveal" style="margin-bottom:32px;">
       镜中识别出：小林的遗憾核心是"丧失自主权"，而非"选错行业"。这是<strong style="color:var(--gold)">可弥补遗憾</strong>——不需要辞职考公，也能找到解法。
@@ -471,7 +497,7 @@
       <div class="pain-item">你需要一个<strong>真正了解你的决策伙伴</strong></div>
     </div>
 
-    <h3 class="reveal" style="font-family:var(--font-display);font-size:24px;margin:48px 0 24px;color:var(--text);">三层 AI 能力叠加，不只是"聊天机器人"</h3>
+    <h3 class="subsection-title reveal">三层 AI 能力叠加，不只是"聊天机器人"</h3>
 
     <div class="tech-layers reveal">
       <div class="tech-layer">
@@ -574,7 +600,7 @@
     </table>
 
     <!-- 商业价值：目标用户 + 市场规模 -->
-    <h3 class="reveal" style="font-family:var(--font-display);font-size:24px;margin:56px 0 24px;color:var(--text);">目标用户与市场</h3>
+    <h3 class="subsection-title reveal">目标用户与市场</h3>
 
     <div class="biz-grid reveal">
       <div class="biz-card">
@@ -633,7 +659,7 @@
     </div>
 
     <!-- 商业模式 -->
-    <h3 class="reveal" style="font-family:var(--font-display);font-size:24px;margin:56px 0 24px;color:var(--text);">商业模式</h3>
+    <h3 class="subsection-title reveal">商业模式</h3>
 
     <div class="pricing-grid reveal">
       <div class="pricing-card">
@@ -752,7 +778,7 @@
     </div>
 
     <!-- 用户画像引擎架构图（可视化） -->
-    <h3 class="reveal" style="font-family:var(--font-display);font-size:24px;margin:64px 0 24px;color:var(--text);">用户画像引擎架构</h3>
+    <h3 class="subsection-title reveal" style="margin-top:64px;">用户画像引擎架构</h3>
 
     <div class="arch-visual reveal">
       <div class="arch-visual-header">用户画像引擎 · 12 维度 · 置信度递增 · 持续校准</div>
@@ -819,7 +845,7 @@
     </div>
 
     <!-- 平行推演引擎架构图（可视化） -->
-    <h3 class="reveal" style="font-family:var(--font-display);font-size:24px;margin:64px 0 24px;color:var(--text);">平行推演引擎架构</h3>
+    <h3 class="subsection-title reveal" style="margin-top:64px;">平行推演引擎架构</h3>
 
     <div class="arch-visual reveal">
       <div class="arch-visual-header">平行推演引擎 · 画像驱动 · 真实数据锚定 · 四幕叙事</div>
@@ -915,7 +941,7 @@
     </div>
 
     <!-- 已完成功能 -->
-    <h3 class="reveal" style="font-family:var(--font-display);font-size:24px;margin:64px 0 24px;color:var(--text);">已完成功能</h3>
+    <h3 class="subsection-title reveal" style="margin-top:64px;">已完成功能</h3>
 
     <ul class="feature-checklist reveal">
       <li>AI 苏格拉底式对话（12 维度画像建模）</li>
@@ -931,7 +957,7 @@
     </ul>
 
     <!-- 可视化技术 + 数据隐私 -->
-    <h3 class="reveal" style="font-family:var(--font-display);font-size:24px;margin:64px 0 24px;color:var(--text);">可视化与隐私</h3>
+    <h3 class="subsection-title reveal" style="margin-top:64px;">可视化与隐私</h3>
     <div class="biz-grid reveal">
       <div class="biz-card">
         <h4>🎨 可视化技术</h4>
@@ -957,8 +983,8 @@
 <!-- ==================== Demo 体验 ==================== -->
 <section class="demo-section">
   <div class="container">
-    <div class="section-label reveal" style="justify-content:center;">在线体验</div>
-    <h2 class="section-title reveal" style="text-align:center;">亲自感受镜中</h2>
+    <div class="section-label reveal" style="justify-content:center;border-left:none;background:none;padding-left:0;">在线体验</div>
+    <h2 class="section-title center reveal">亲自感受镜中</h2>
 
     <div class="demo-preview reveal">
       <div class="demo-preview-inner">
