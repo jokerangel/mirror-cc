@@ -166,16 +166,73 @@
     .deduction-input { padding: 28px 32px; background: rgba(212,165,116,0.08); border-bottom: 1px solid var(--divider); }
     .deduction-input-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
     .deduction-input-text { font-size: 18px; color: var(--gold); font-weight: 500; }
-    .deduction-acts { padding: 32px; }
-    .act {
-      padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
-      display: grid; grid-template-columns: 120px 1fr; gap: 20px; align-items: start;
+
+    /* ===== 四幕轮播 ===== */
+    .carousel { position: relative; padding: 0 56px; }
+    .carousel-track { overflow: hidden; }
+    .carousel-slides { display: flex; transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+    .carousel-slide { min-width: 100%; padding: 32px; }
+    .carousel-act-num { font-size: 48px; font-weight: 700; font-family: var(--font-display); line-height: 1; margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--purple) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; opacity: 0.3; }
+    .carousel-act-label { font-size: 15px; color: var(--gold); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .carousel-act-content { font-size: 16px; color: var(--text-dim); line-height: 1.9; }
+    .carousel-act-content .insight { color: var(--gold); font-weight: 500; }
+    .carousel-act-content .question { color: var(--purple); font-style: italic; }
+    .carousel-btn {
+      position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px;
+      border-radius: 50%; border: 1px solid var(--divider); background: var(--bg-card);
+      color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; transition: all 0.2s; z-index: 2;
     }
-    .act:last-child { border-bottom: none; }
-    .act-label { font-size: 13px; color: var(--purple); font-weight: 600; letter-spacing: 0.5px; padding-top: 2px; }
-    .act-content { font-size: 15px; color: var(--text-dim); line-height: 1.8; }
-    .act-content .insight { color: var(--gold); font-weight: 500; }
-    .act-content .question { color: var(--purple); font-style: italic; }
+    .carousel-btn:hover { background: var(--bg-card-hover); color: var(--gold); border-color: rgba(212,165,116,0.3); }
+    .carousel-btn.prev { left: 8px; }
+    .carousel-btn.next { right: 8px; }
+    .carousel-dots { display: flex; gap: 8px; justify-content: center; padding: 16px 32px 24px; }
+    .carousel-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15);
+      border: none; cursor: pointer; transition: all 0.3s; padding: 0;
+    }
+    .carousel-dot.active { background: var(--gold); width: 24px; border-radius: 4px; }
+
+    /* ===== 雷达图 ===== */
+    .radar-section { display: flex; gap: 40px; align-items: center; margin: 32px 0; flex-wrap: wrap; }
+    .radar-canvas-wrap { flex: 0 0 320px; display: flex; justify-content: center; }
+    .radar-values { flex: 1; min-width: 260px; }
+    .radar-value-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: default; transition: background 0.2s; }
+    .radar-value-item:last-child { border-bottom: none; }
+    .radar-value-item:hover { background: rgba(255,255,255,0.02); border-radius: 8px; margin: 0 -8px; padding-left: 8px; padding-right: 8px; }
+    .radar-value-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+    .radar-value-label { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+    .radar-value-desc { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
+    /* ===== 用户卡片选择 ===== */
+    .user-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 32px 0; }
+    .user-card {
+      padding: 24px; border-radius: 16px; background: var(--bg-card);
+      border: 1px solid var(--divider); cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden;
+    }
+    .user-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: transparent; transition: background 0.3s;
+    }
+    .user-card:hover { border-color: rgba(212,165,116,0.3); background: var(--bg-card-hover); }
+    .user-card.active { border-color: var(--gold); background: rgba(212,165,116,0.05); }
+    .user-card.active::before { background: linear-gradient(90deg, var(--gold), var(--purple)); }
+    .user-card-icon { font-size: 28px; margin-bottom: 12px; }
+    .user-card-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .user-card-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
+    .user-card-detail {
+      max-height: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease; opacity: 0;
+    }
+    .user-card.active .user-card-detail { max-height: 200px; opacity: 1; }
+    .user-card-detail ul { list-style: none; padding-top: 14px; border-top: 1px solid var(--divider); }
+    .user-card-detail li {
+      font-size: 14px; color: var(--text-dim); padding: 6px 0 6px 20px; position: relative; line-height: 1.5;
+    }
+    .user-card-detail li::before { content: '→'; position: absolute; left: 0; color: var(--gold); font-size: 13px; }
+    .user-expand-hint { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: -8px; margin-bottom: 24px; opacity: 0.6; }
+    @media (max-width: 640px) { .user-cards { grid-template-columns: 1fr; } .radar-section { flex-direction: column; } .radar-canvas-wrap { flex: 0 0 auto; } }
 
     /* ===== 遗憾管理 ===== */
     .regret-flow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; margin: 40px 0; align-items: stretch; }
@@ -343,17 +400,23 @@
     @media (max-width: 768px) {
       section { padding: 72px 0; }
       .story-hook { padding: 24px; font-size: 15px; }
-      .act { grid-template-columns: 1fr; gap: 8px; }
       .regret-flow { grid-template-columns: 1fr; gap: 16px; }
       .regret-divider { padding: 8px 0; flex-direction: row; }
       .arch-visual-body { padding: 20px 16px; }
       .deduction-demo { border-radius: 12px; }
+      .carousel { padding: 0 48px; }
+      .carousel-btn { width: 34px; height: 34px; font-size: 15px; }
       .pricing-grid { grid-template-columns: 1fr; }
       .biz-grid { grid-template-columns: 1fr; }
+      .user-cards { grid-template-columns: 1fr; }
+      .radar-section { flex-direction: column; }
+      .radar-canvas-wrap { flex: 0 0 auto; }
       .arch-row { flex-direction: column; }
       .arch-split { grid-template-columns: 1fr; }
       .arch-split-divider { flex-direction: row; padding: 8px 0; }
       .arch-dim-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
+      .arch-visual .arch-visual-body > div[style*="grid-template-columns: 1fr 1fr 1fr 1fr"],
+      .arch-visual .arch-visual-body > div[style*="grid-template-columns:repeat(4"] { grid-template-columns: 1fr 1fr !important; }
     }
     @media (max-width: 480px) {
       .hero h1 { font-size: 36px; }
@@ -366,7 +429,8 @@
       .hero-scroll { animation: none; }
       #particle-canvas { display: none; }
       .act, .pricing-card, .biz-card, .arch-box, .value-table tr, .arch-dim-item,
-      .regret-card, .tech-layer, .pain-item, .arch-visual, .feature-checklist li { opacity: 1; transform: none; }
+      .regret-card, .tech-layer, .pain-item, .arch-visual, .feature-checklist li,
+      .radar-canvas-wrap, .radar-value-item, .user-card { opacity: 1; transform: none; }
     }
 
     /* ===== 内容结构动效 ===== */
@@ -378,15 +442,35 @@
       50% { box-shadow: 0 0 20px rgba(212,165,116,0.35); }
     }
 
-    /* 推演四幕渐进入 */
-    .act {
-      opacity: 0; transform: translateX(-24px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
+    /* 推演轮播******/
+
+    /* Deduction demo shimmer stays */
+
+    /* 雷达图渐入 */
+    .radar-canvas-wrap {
+      opacity: 0; transform: scale(0.9);
+      transition: opacity 0.8s ease, transform 0.8s ease;
     }
-    .deduction-demo.visible .act:nth-child(1) { opacity: 1; transform: none; transition-delay: 0.1s; }
-    .deduction-demo.visible .act:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.3s; }
-    .deduction-demo.visible .act:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.5s; }
-    .deduction-demo.visible .act:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.7s; }
+    .radar-section.visible .radar-canvas-wrap { opacity: 1; transform: none; transition-delay: 0.1s; }
+    .radar-value-item {
+      opacity: 0; transform: translateX(-12px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .radar-section.visible .radar-value-item:nth-child(1) { opacity: 1; transform: none; transition-delay: 0.2s; }
+    .radar-section.visible .radar-value-item:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.28s; }
+    .radar-section.visible .radar-value-item:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.36s; }
+    .radar-section.visible .radar-value-item:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.44s; }
+    .radar-section.visible .radar-value-item:nth-child(5) { opacity: 1; transform: none; transition-delay: 0.52s; }
+    .radar-section.visible .radar-value-item:nth-child(6) { opacity: 1; transform: none; transition-delay: 0.60s; }
+
+    /* 用户卡片渐入 */
+    .user-card {
+      opacity: 0; transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.3s, background 0.3s;
+    }
+    .user-cards.visible .user-card:nth-child(1) { opacity: 1; transform: none; transition-delay: 0s; }
+    .user-cards.visible .user-card:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.1s; }
+    .user-cards.visible .user-card:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.2s; }
 
     /* 遗憾管理卡片：左/右滑入 */
     .regret-card {
@@ -569,22 +653,38 @@
         <div class="deduction-input-label">用户输入</div>
         <div class="deduction-input-text">"如果当初我考了公务员"</div>
       </div>
-      <div class="deduction-acts">
-        <div class="act">
-          <div class="act-label">第一幕 · 起点</div>
-          <div class="act-content">辞职备考，经济压力、家庭期待、同龄人焦虑<br><span class="question">你是那种能坐得住冷板凳的人吗？画像显示：你偏好即时反馈</span></div>
+      <div class="carousel" id="act-carousel">
+        <button class="carousel-btn prev" onclick="carouselSlide(-1)" aria-label="上一幕">‹</button>
+        <div class="carousel-track">
+          <div class="carousel-slides" id="act-slides">
+            <div class="carousel-slide">
+              <div class="carousel-act-num">01</div>
+              <div class="carousel-act-label">第一幕 · 起点</div>
+              <div class="carousel-act-content">辞职备考，经济压力、家庭期待、同龄人焦虑<br><br><span class="question">你是那种能坐得住冷板凳的人吗？画像显示：你偏好即时反馈</span></div>
+            </div>
+            <div class="carousel-slide">
+              <div class="carousel-act-num">02</div>
+              <div class="carousel-act-label">第二幕 · 转折</div>
+              <div class="carousel-act-content">稳定、规律、有安全感——这是他想象中的画面。但也有：论资排辈、流程僵化、个人发挥空间有限<br><br><span class="insight">你过去三次离职都因为"觉得没有成长"——体制内能满足你吗？</span></div>
+            </div>
+            <div class="carousel-slide">
+              <div class="carousel-act-num">03</div>
+              <div class="carousel-act-label">第三幕 · 发展</div>
+              <div class="carousel-act-content">工作生活平衡了，但开始觉得"一眼望到头"。收入和同龄人拉开差距，朋友在大厂跳槽涨薪 50%<br><br><span class="question">他会不会又想："如果当初没考公呢？"</span></div>
+            </div>
+            <div class="carousel-slide">
+              <div class="carousel-act-num">04</div>
+              <div class="carousel-act-label">第四幕 · 回望</div>
+              <div class="carousel-act-content">推演不是替你选，是让你<span class="insight">看见</span>——看见了另一条路的代价，也看清了自己的真实需求<br><br><span class="insight">小林发现：他要的不是公务员，是自由时间和掌控感</span></div>
+            </div>
+          </div>
         </div>
-        <div class="act">
-          <div class="act-label">第二幕 · 转折</div>
-          <div class="act-content">稳定、规律、有安全感——这是他想象中的画面。但也有：论资排辈、流程僵化、个人发挥空间有限<br><span class="insight">你过去三次离职都因为"觉得没有成长"——体制内能满足你吗？</span></div>
-        </div>
-        <div class="act">
-          <div class="act-label">第三幕 · 发展</div>
-          <div class="act-content">工作生活平衡了，但开始觉得"一眼望到头"。收入和同龄人拉开差距，朋友在大厂跳槽涨薪 50%<br><span class="question">他会不会又想："如果当初没考公呢？"</span></div>
-        </div>
-        <div class="act">
-          <div class="act-label">第四幕 · 回望</div>
-          <div class="act-content">推演不是替你选，是让你<span class="insight">看见</span>——看见了另一条路的代价，也看清了自己的真实需求<br><span class="insight">小林发现：他要的不是公务员，是自由时间和掌控感</span></div>
+        <button class="carousel-btn next" onclick="carouselSlide(1)" aria-label="下一幕">›</button>
+        <div class="carousel-dots" id="act-dots">
+          <button class="carousel-dot active" onclick="carouselGo(0)"></button>
+          <button class="carousel-dot" onclick="carouselGo(1)"></button>
+          <button class="carousel-dot" onclick="carouselGo(2)"></button>
+          <button class="carousel-dot" onclick="carouselGo(3)"></button>
         </div>
       </div>
     </div>
@@ -730,49 +830,101 @@
     <div class="section-label reveal">产品价值</div>
     <h2 class="section-title reveal">看见自己看不见的那一面，并为看不见的未来提供真实的参照</h2>
 
-    <table class="value-table reveal">
-      <thead>
-        <tr><th>价值维度</th><th>具体价值</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>情感价值</td><td>"后悔"不再是遗憾，是一种可以被探索的可能性；不可弥补的遗憾可以被和解</td></tr>
-        <tr><td>认知价值</td><td>看见自己的决策模式，理解"我为什么总是这样选"</td></tr>
-        <tr><td>决策价值</td><td>面对选择不再焦虑，有具体的推演支撑判断；AI 会从历史遗憾中主动提醒</td></tr>
-        <tr><td>成长价值</td><td>每次推演都是一次自我反思，画像清晰度持续提升</td></tr>
-        <tr><td>记录价值</td><td>人生碎片不再是零散记忆，而是有结构的时间线</td></tr>
-        <tr><td>行动价值</td><td>可弥补的遗憾被识别并引导行动，避免"可以补救却拖延成永久遗憾"</td></tr>
-      </tbody>
-    </table>
+    <div class="radar-section reveal" id="radar-section">
+      <div class="radar-canvas-wrap">
+        <canvas id="radar-chart" width="320" height="320"></canvas>
+      </div>
+      <div class="radar-values">
+        <div class="radar-value-item" data-idx="0">
+          <div class="radar-value-dot" style="background:#D4A574;"></div>
+          <div>
+            <div class="radar-value-label">情感价值</div>
+            <div class="radar-value-desc">"后悔"不再是遗憾，是一种可以被探索的可能性；不可弥补的遗憾可以被和解</div>
+          </div>
+        </div>
+        <div class="radar-value-item" data-idx="1">
+          <div class="radar-value-dot" style="background:#E8C9A0;"></div>
+          <div>
+            <div class="radar-value-label">认知价值</div>
+            <div class="radar-value-desc">看见自己的决策模式，理解"我为什么总是这样选"</div>
+          </div>
+        </div>
+        <div class="radar-value-item" data-idx="2">
+          <div class="radar-value-dot" style="background:#B8A5D0;"></div>
+          <div>
+            <div class="radar-value-label">决策价值</div>
+            <div class="radar-value-desc">面对选择不再焦虑，有具体的推演支撑判断；AI 会从历史遗憾中主动提醒</div>
+          </div>
+        </div>
+        <div class="radar-value-item" data-idx="3">
+          <div class="radar-value-dot" style="background:#C09060;"></div>
+          <div>
+            <div class="radar-value-label">成长价值</div>
+            <div class="radar-value-desc">每次推演都是一次自我反思，画像清晰度持续提升</div>
+          </div>
+        </div>
+        <div class="radar-value-item" data-idx="4">
+          <div class="radar-value-dot" style="background:#9B8EC0;"></div>
+          <div>
+            <div class="radar-value-label">记录价值</div>
+            <div class="radar-value-desc">人生碎片不再是零散记忆，而是有结构的时间线</div>
+          </div>
+        </div>
+        <div class="radar-value-item" data-idx="5">
+          <div class="radar-value-dot" style="background:#6BA5A0;"></div>
+          <div>
+            <div class="radar-value-label">行动价值</div>
+            <div class="radar-value-desc">可弥补的遗憾被识别并引导行动，避免"可以补救却拖延成永久遗憾"</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 商业价值：目标用户 + 市场规模 -->
     <h3 class="subsection-title reveal">目标用户与市场</h3>
 
-    <div class="biz-grid reveal">
-      <div class="biz-card">
-        <h4>🎯 核心用户</h4>
-        <ul>
-          <li>25-35 岁城市白领</li>
-          <li>经历 2-3 次重大决策</li>
-          <li>有"如果当初"的遗憾</li>
-        </ul>
+    <div class="user-cards reveal" id="user-cards">
+      <div class="user-card active" onclick="selectUserCard(this)">
+        <div class="user-card-icon">🎯</div>
+        <div class="user-card-title">核心用户</div>
+        <div class="user-card-sub">25-35 岁 · 有遗憾的决策者</div>
+        <div class="user-card-detail">
+          <ul>
+            <li>25-35 岁城市白领</li>
+            <li>经历 2-3 次重大决策</li>
+            <li>有"如果当初"的遗憾</li>
+            <li>需要看见另一条路的模样</li>
+          </ul>
+        </div>
       </div>
-      <div class="biz-card">
-        <h4>📈 扩展用户</h4>
-        <ul>
-          <li>18-25 岁大学生 / 初入职场</li>
-          <li>面对职业选择和人生方向</li>
-          <li>需要决策辅助而非后悔管理</li>
-        </ul>
+      <div class="user-card" onclick="selectUserCard(this)">
+        <div class="user-card-icon">📈</div>
+        <div class="user-card-title">扩展用户</div>
+        <div class="user-card-sub">18-25 岁 · 站在路口的人</div>
+        <div class="user-card-detail">
+          <ul>
+            <li>18-25 岁大学生 / 初入职场</li>
+            <li>面对职业选择和人生方向</li>
+            <li>需要决策辅助而非后悔管理</li>
+            <li>画像从零开始，培养决策意识</li>
+          </ul>
+        </div>
       </div>
-      <div class="biz-card">
-        <h4>🔮 潜力用户</h4>
-        <ul>
-          <li>35-45 岁中年人群</li>
-          <li>面临职业转型、家庭决策</li>
-          <li>画像数据最深、需求最强</li>
-        </ul>
+      <div class="user-card" onclick="selectUserCard(this)">
+        <div class="user-card-icon">🔮</div>
+        <div class="user-card-title">潜力用户</div>
+        <div class="user-card-sub">35-45 岁 · 转型期的思考者</div>
+        <div class="user-card-detail">
+          <ul>
+            <li>35-45 岁中年人群</li>
+            <li>面临职业转型、家庭决策</li>
+            <li>画像数据最深、需求最强</li>
+            <li>最大付费意愿和留存率</li>
+          </ul>
+        </div>
       </div>
     </div>
+    <div class="user-expand-hint">点击卡片查看详情</div>
 
     <div class="biz-grid reveal" style="margin-top:20px;">
       <div class="biz-card">
@@ -1223,13 +1375,129 @@
   draw();
 })();
 
+// ===== 四幕轮播 =====
+let carouselIdx = 0;
+const totalSlides = 4;
+function carouselSlide(dir) {
+  carouselIdx = (carouselIdx + dir + totalSlides) % totalSlides;
+  updateCarousel();
+}
+function carouselGo(idx) {
+  carouselIdx = idx;
+  updateCarousel();
+}
+function updateCarousel() {
+  const slides = document.getElementById('act-slides');
+  const dots = document.querySelectorAll('#act-dots .carousel-dot');
+  if (slides) slides.style.transform = 'translateX(-' + (carouselIdx * 100) + '%)';
+  dots.forEach(function(d, i) { d.classList.toggle('active', i === carouselIdx); });
+}
+
+// ===== 用户卡片选择 =====
+function selectUserCard(card) {
+  const cards = document.querySelectorAll('.user-card');
+  cards.forEach(function(c) { c.classList.remove('active'); });
+  card.classList.add('active');
+}
+
+// ===== 雷达图 =====
+function drawRadar() {
+  const canvas = document.getElementById('radar-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const size = 320;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  ctx.scale(dpr, dpr);
+
+  const cx = size / 2, cy = size / 2, maxR = 120;
+  const labels = ['情感', '认知', '决策', '成长', '记录', '行动'];
+  const values = [0.9, 0.75, 0.85, 0.8, 0.7, 0.85];
+  const n = labels.length;
+  const angleStep = (Math.PI * 2) / n;
+  const startAngle = -Math.PI / 2;
+
+  // Grid
+  for (let level = 1; level <= 4; level++) {
+    const r = maxR * level / 4;
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const angle = startAngle + i * angleStep;
+      const x = cx + r * Math.cos(angle);
+      const y = cy + r * Math.sin(angle);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = 'rgba(212,165,116,' + (0.06 + level * 0.03) + ')';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Spokes + labels
+  for (let i = 0; i < n; i++) {
+    const angle = startAngle + i * angleStep;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + maxR * Math.cos(angle), cy + maxR * Math.sin(angle));
+    ctx.strokeStyle = 'rgba(212,165,116,0.12)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Label
+    const labelR = maxR + 24;
+    const lx = cx + labelR * Math.cos(angle);
+    const ly = cy + labelR * Math.sin(angle);
+    ctx.fillStyle = '#8A8690';
+    ctx.font = '13px Inter, PingFang SC, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(labels[i], lx, ly);
+  }
+
+  // Data fill
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++) {
+    const idx = i % n;
+    const angle = startAngle + idx * angleStep;
+    const r = maxR * values[idx];
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.fillStyle = 'rgba(212,165,116,0.12)';
+  ctx.fill();
+  ctx.strokeStyle = '#D4A574';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Data points
+  for (let i = 0; i < n; i++) {
+    const angle = startAngle + i * angleStep;
+    const r = maxR * values[i];
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#D4A574';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(212,165,116,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+drawRadar();
+
 // ===== IntersectionObserver =====
 (function() {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (prefersReduced) {
     document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
     // Also trigger structure animations
-    document.querySelectorAll('.deduction-demo,.regret-flow,.regret-card,.value-table,.pricing-grid,.biz-grid,.tech-layers,.pain-grid,.arch-visual').forEach(el => el.classList.add('visible'));
+    document.querySelectorAll('.deduction-demo,.regret-flow,.regret-card,.value-table,.pricing-grid,.biz-grid,.tech-layers,.pain-grid,.arch-visual,.radar-section,.user-cards').forEach(el => el.classList.add('visible'));
     return;
   }
   const observer = new IntersectionObserver((entries) => {
@@ -1249,6 +1517,10 @@
     '.tech-layers', '.pain-grid', '.arch-visual'
   ];
   structureSelectors.forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => observer.observe(el));
+  });
+  // Extra animated elements
+  ['.radar-section', '.user-cards'].forEach(sel => {
     document.querySelectorAll(sel).forEach(el => observer.observe(el));
   });
 })();
